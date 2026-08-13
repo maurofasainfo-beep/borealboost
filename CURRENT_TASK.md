@@ -1,1310 +1,1375 @@
 # CURRENT_TASK.md
-# BorealBoost — Fase 2: System Scanner
+# BorealBoost — Fase 3: Analysis + Recommendation Engine
 
-> A Fase 1 — Foundation foi concluída, auditada, corrigida, validada e aprovada.
+> Fase 2 — System Scanner: APROVADA.
 >
-> Esta tarefa inicia a Fase 2 — System Scanner.
+> Esta fase transforma os fatos coletados pelo Scanner em análises, oportunidades e recomendações técnicas.
 >
-> O objetivo desta fase é construir um scanner confiável, normalizado e somente leitura capaz de produzir um retrato técnico do computador.
->
-> NÃO implementar otimizações nesta fase.
+> O BorealBoost ainda NÃO deve modificar o Windows nesta fase.
 
 ---
 
 # 1. STATUS
 
-Fase anterior:
+Concluído:
 
-✅ FASE 1 — FOUNDATION — APROVADA
-
-Validação final da Fase 1:
-
-- restore: PASS
-- build: PASS
-- tests: 52/52 PASS
-- Agent arbitrary execution: NÃO
-- destructive functionality: NÃO
+✅ FASE 0 — Discovery e Arquitetura  
+✅ FASE 1 — Foundation  
+✅ FASE 2 — System Scanner
 
 Fase atual:
 
-🚧 FASE 2 — SYSTEM SCANNER
+🚧 FASE 3 — ANALYSIS + RECOMMENDATION ENGINE
 
 ---
 
-# 2. OBJETIVO PRINCIPAL
+# 2. OBJETIVO
 
-Implementar o System Scanner do BorealBoost.
+Implementar:
 
-O Scanner será responsável por descobrir e normalizar informações relevantes do computador para que fases posteriores possam realizar:
+SystemSnapshot
+↓
+Analysis Engine
+↓
+Compatibility Evaluation
+↓
+Opportunity Detection
+↓
+Recommendation Engine
+↓
+Recommendation Plan
+↓
+UI
 
-- análise;
-- recomendações;
-- compatibilidade;
-- seleção de otimizações;
-- drivers;
-- benchmark;
-- rollback;
-- relatórios.
+O objetivo é responder:
 
-O Scanner NÃO decide o que otimizar.
+"O que pode ser melhorado nesta máquina?"
 
-O Scanner apenas:
+sem ainda executar:
 
-DETECTA
-→ COLETA
-→ NORMALIZA
-→ VALIDA
-→ REPORTA
-
-Separar claramente:
-
-FACTS
-
-de:
-
-RECOMMENDATIONS
-
-Nesta fase trabalhamos apenas com FACTS.
+"Faça essa alteração."
 
 ---
 
-# 3. LEITURA OBRIGATÓRIA
+# 3. REGRA FUNDAMENTAL
 
-Antes de modificar código, leia integralmente:
+Manter separação rigorosa:
+
+Scanner
+= fatos
+
+Analysis
+= interpretação
+
+Recommendation
+= sugestão
+
+Optimization
+= execução
+
+Rollback
+= recuperação
+
+Nesta fase:
+
+Scanner → existente
+Analysis → implementar
+Recommendation → implementar
+Optimization → NÃO executar
+Rollback → NÃO executar
+
+---
+
+# 4. LEITURA OBRIGATÓRIA
+
+Antes de implementar, leia integralmente:
 
 - BOREALBOOST_MASTER_SPEC.md
 - CODEX_BOOTSTRAP.md
 - CURRENT_TASK.md
-- DISCOVERY.md
 - REQUIREMENTS.md
 - ARCHITECTURE.md
 - ARCHITECTURE_DECISION_RECORD.md
 - DOMAIN_MODEL.md
+- OPTIMIZATION_ENGINE.md
+- ROLLBACK_ENGINE.md
 - SECURITY.md
 - COMPATIBILITY_MATRIX.md
 - IMPLEMENTATION_ROADMAP.md
 - UX_SPECIFICATION.md
-- PHASE1_AUDIT.md
-- PHASE1_REVALIDATION.md
+- SYSTEM_SCANNER.md
+- BOREAL_SCORE.md
+- PHASE2_AUDIT.md
+- PHASE2_REVALIDATION.md
 
 Depois analise o código atual integralmente.
 
-Não presuma que documentação e implementação continuam idênticas.
+Não contradiga decisões aprovadas silenciosamente.
 
 ---
 
-# 4. REGRA FUNDAMENTAL
+# 5. ROADMAP OTIMIZADO
 
-O System Scanner deve ser:
+A partir desta fase, utilizar roadmap consolidado:
 
-- read-only;
-- determinístico quando possível;
-- tolerante a hardware desconhecido;
-- tolerante a APIs indisponíveis;
-- cancelável;
-- testável;
-- observável;
-- modular;
-- normalizado;
-- compatível com Windows 10 e Windows 11 suportados pelo projeto.
+FASE 3
+Analysis + Recommendation Engine
 
-O Scanner não pode modificar o sistema.
+FASE 4
+Optimization Engine + Safety + Snapshot + Rollback
+
+FASE 5
+Optimization Catalog — Safe + Medium + Advanced/Aggressive
+
+FASE 6
+Drivers + Benchmark + Results + Reporting
+
+FASE 7
+Installer + Hardening + Production Readiness
+
+Este roadmap substitui a divisão excessivamente granular anterior.
+
+Atualize IMPLEMENTATION_ROADMAP.md de forma coerente.
+
+Não antecipe essas fases.
 
 ---
 
-# 5. PROIBIÇÃO DE EFEITOS COLATERAIS
+# 6. NÃO ALTERAR O WINDOWS
 
-Durante scanning, NÃO:
+Esta fase deve permanecer essencialmente read-only.
 
-- alterar Registry;
+NÃO:
+
+- escrever Registry;
 - alterar Services;
-- alterar power plan;
-- instalar driver;
-- atualizar driver;
-- remover driver;
-- executar Windows Update;
+- alterar Startup;
+- modificar Power Plan;
 - alterar DNS;
-- alterar rede;
+- modificar Network;
 - remover AppX;
-- executar debloat;
-- executar tweaks;
-- alterar Defender;
-- alterar Firewall;
-- modificar BIOS/UEFI;
-- modificar GPU settings;
 - alterar Windows Features;
-- criar Restore Point;
-- executar otimizações.
+- modificar Defender;
+- modificar Firewall;
+- alterar VBS;
+- alterar Memory Integrity;
+- instalar drivers;
+- atualizar drivers;
+- remover drivers;
+- executar Windows Update;
+- executar DISM/SFC operacional;
+- executar tweaks;
+- executar scripts;
+- aplicar recomendações.
 
-A coleta deve ser somente leitura.
-
----
-
-# 6. PRINCÍPIO DE PRIVILÉGIO
-
-O Scanner deve funcionar com o menor privilégio possível.
-
-Não elevar o BorealBoost.Agent apenas para obter informações que APIs normais do processo do usuário conseguem fornecer.
-
-Se determinado dado realmente exigir privilégio elevado:
-
-1. documentar;
-2. classificar necessidade;
-3. avaliar se o dado é realmente necessário;
-4. não criar operação privilegiada sem respeitar a arquitetura do Agent.
-
-Não transformar o Agent em ferramenta genérica de consulta.
+Uma Recommendation é somente uma descrição estruturada de uma possível ação futura.
 
 ---
 
-# 7. ARQUITETURA DO SCANNER
+# 7. PRINCÍPIO DE EVIDÊNCIA
 
-Projetar e implementar scanner modular.
+O BorealBoost não deve recomendar algo apenas porque:
 
-Exemplo conceitual:
+- aparece em vídeos de otimização;
+- é popular;
+- existe no WinUtil;
+- alguém chamou de "FPS tweak";
+- existe um Registry tweak conhecido.
 
-SystemScanner
-
-composto por providers especializados:
-
-OperatingSystemProvider
-CpuProvider
-GpuProvider
-MemoryProvider
-StorageProvider
-MotherboardProvider
-FirmwareProvider
-DeviceProvider
-DriverInventoryProvider
-NetworkProvider
-DisplayProvider
-PowerProvider
-SecurityCapabilityProvider
-
-Os nomes podem variar conforme a arquitetura existente.
-
-Evitar um único:
-
-SystemScanner.cs
-
-com centenas ou milhares de linhas.
+Toda Recommendation deve possuir justificativa técnica estruturada.
 
 ---
 
-# 8. PIPELINE
+# 8. EVIDENCE LEVEL
 
-O fluxo conceitual deve ser:
+Definir classificação consistente.
 
-Start Scan
-↓
-Create ScanSession
-↓
-Collect Providers
-↓
-Normalize
-↓
-Validate
-↓
-Aggregate
-↓
-Generate SystemSnapshot
-↓
-Present Result
+Sugestão conceitual:
 
-Falha de um provider não deve necessariamente invalidar todo o scan.
+Strong
+Moderate
+Experimental
+Unknown
 
-Exemplo:
+ou nomenclatura equivalente já aprovada.
 
-falha ao identificar monitor
+Strong:
+evidência técnica/documentação confiável e benefício contextual claro.
 
-não deve impedir:
+Moderate:
+benefício plausível e tecnicamente justificável, mas dependente do cenário.
 
-CPU
-GPU
-RAM
-OS
+Experimental:
+resultado altamente dependente do hardware/workload ou evidência limitada.
 
-de serem reportados.
+Unknown:
+não deve ser recomendado automaticamente.
+
+Não inventar Strong para dar aparência de qualidade.
 
 ---
 
-# 9. RESULTADO DO SCAN
+# 9. RISK LEVEL
 
-Criar um modelo normalizado semelhante conceitualmente a:
-
-SystemSnapshot
-
-contendo grupos como:
-
-OperatingSystem
-Hardware
-Processors
-Graphics
-Memory
-Storage
-Motherboard
-Firmware
-Devices
-Drivers
-Network
-Displays
-Power
-Capabilities
-ScanMetadata
-
-Seguir DOMAIN_MODEL.md quando já houver modelo aprovado.
-
-Não duplicar entidades existentes sem necessidade.
-
----
-
-# 10. SCAN METADATA
-
-Registrar metadados do scan.
+Cada Recommendation deve possuir risco.
 
 No mínimo:
 
-- ScanId
-- StartedAtUtc
-- CompletedAtUtc
-- Duration
-- AppVersion
-- SchemaVersion
-- MachineArchitecture
-- ProviderResults
-- PartialScan
-- Errors/Warnings
+Safe
+Medium
+Advanced
+Aggressive
 
-Não registrar dados pessoais desnecessários.
+ou estrutura equivalente compatível com os presets desejados.
 
----
+Safe:
+baixo risco operacional.
 
-# 11. SISTEMA OPERACIONAL
+Medium:
+alteração mais relevante, mas normalmente reversível.
 
-Detectar de forma confiável:
+Advanced:
+pode afetar recursos/comportamento e exige maior cuidado.
 
-- Windows 10 ou Windows 11;
-- edição;
-- versão;
-- build;
-- revision quando disponível;
-- arquitetura;
-- display version;
-- instalação x64/ARM64 quando aplicável;
-- estado de compatibilidade com BorealBoost.
+Aggressive:
+pode comprometer compatibilidade, segurança, estabilidade, funcionalidades ou manutenção.
 
-Não depender exclusivamente de:
+Aggressive nunca deve significar:
 
-Environment.OSVersion
+"melhor".
 
-se isso puder produzir identificação incorreta.
+Significa:
 
-Utilizar mecanismos Windows apropriados e documentados.
+"maior impacto e maior risco".
 
 ---
 
-# 12. COMPATIBILIDADE DO WINDOWS
+# 10. PRESETS
 
-Classificar conceitualmente:
+Preparar modelo para os presets desejados:
 
-Supported
-LegacySupported
-Unsupported
-Unknown
+Básico
+Médio
+Avançado
 
-Conforme COMPATIBILITY_MATRIX.md.
+E permitir futuramente:
 
-Windows 10 22H2 x64/build 19045 permanece target legado.
+Personalizado
 
-Não confundir:
+Não aplicar presets nesta fase.
 
-"Microsoft ainda oferece suporte"
-
-com
-
-"BorealBoost consegue operar".
+Apenas definir como recomendações poderão ser agrupadas.
 
 ---
 
-# 13. CPU
+# 11. BASIC PRESET
 
-Detectar:
+Conceitualmente deverá aceitar somente recomendações:
 
-- fabricante;
-- nome/modelo;
-- arquitetura;
-- logical processors;
-- physical cores quando disponível;
-- sockets;
-- max/current clock quando confiável;
-- processor identifier;
-- família/modelo quando disponível;
-- virtualization capability quando relevante.
-
-Identificar pelo menos:
-
-Intel
-AMD
-Unknown
-
-Não inferir geração da CPU por parsing frágil do nome se não houver necessidade.
+- altamente compatíveis;
+- reversíveis;
+- baixo risco;
+- sem redução relevante de segurança;
+- sem dependência frágil de hardware.
 
 ---
 
-# 14. GPU
+# 12. MEDIUM PRESET
 
-Detectar todas as GPUs.
+Poderá incluir:
 
-Não assumir uma GPU única.
+Safe + Medium
 
-Coletar quando disponível:
+desde que compatíveis com a máquina.
 
-- nome;
-- vendor;
-- device ID;
-- PNP Device ID;
-- driver version;
-- driver date;
-- adapter RAM quando confiável;
-- status;
-- integrada/dedicada quando puder ser determinado com evidência adequada.
-
-Suportar cenários:
-
-Intel + NVIDIA
-AMD iGPU + AMD dGPU
-Intel + AMD
-uma única GPU
-Microsoft Basic Display Adapter
-VM GPU
-GPU desconhecida
-
-Não inventar VRAM.
+Não incluir automaticamente recomendações Aggressive.
 
 ---
 
-# 15. MEMÓRIA RAM
+# 13. ADVANCED PRESET
 
-Detectar:
+Poderá apresentar:
 
-- total físico;
-- módulos;
-- capacidade por módulo;
-- quantidade de módulos;
-- slots usados quando disponível;
-- fabricante;
-- part number;
-- velocidade configurada quando confiável;
-- velocidade nominal quando disponível.
+Safe
+Medium
+Advanced
+Aggressive
 
-Não calcular automaticamente XMP/EXPO ativo sem evidência suficiente.
+Mas recomendações de risco elevado devem possuir:
 
-Não recomendar upgrade nesta fase.
+- aviso;
+- motivo;
+- impacto;
+- compatibilidade;
+- rollback futuro;
+- consentimento explícito futuro.
 
----
-
-# 16. STORAGE
-
-Detectar todos os discos físicos relevantes.
-
-Coletar quando disponível:
-
-- modelo;
-- fabricante;
-- capacidade;
-- tipo de mídia;
-- bus type;
-- SSD/HDD/NVMe quando confiável;
-- status;
-- partitions/volumes relevantes;
-- espaço total;
-- espaço livre;
-- system drive.
-
-Evitar heurísticas frágeis baseadas apenas no nome do dispositivo.
-
-Não executar benchmark de disco nesta fase.
+Nesta fase apenas modelar.
 
 ---
 
-# 17. MOTHERBOARD
+# 14. ANALYSIS ENGINE
 
-Detectar quando disponível:
+Implementar motor desacoplado da UI.
 
-- manufacturer;
-- product/model;
-- version;
-- serial apenas se realmente necessário.
+Conceitualmente:
 
-Por padrão, evitar persistir/exibir serial number se não houver necessidade funcional.
+IAnalysisEngine
 
-O BorealBoost não deve coletar identificadores pessoais/hardware únicos sem motivo.
+recebe:
 
----
+SystemSnapshot
 
-# 18. BIOS / UEFI
+retorna:
 
-Detectar:
+AnalysisResult
 
-- fabricante;
-- versão;
-- data;
-- firmware type quando disponível;
-- UEFI/Legacy quando determinável;
-- Secure Boot capability/state quando apropriado e read-only.
+AnalysisResult deve representar:
 
-Não modificar firmware.
+- oportunidades;
+- observações;
+- incompatibilidades;
+- warnings;
+- recommendations;
+- metadata.
 
-Não tentar atualizar BIOS.
+Não acessar UI diretamente.
 
 ---
 
-# 19. DESKTOP VS NOTEBOOK
+# 15. RULE ENGINE
 
-Implementar classificação robusta.
+Evitar um método gigante:
 
-Possíveis resultados:
+Analyze(SystemSnapshot snapshot)
+{
+    if (...)
+    if (...)
+    if (...)
+    ...
+}
 
-Desktop
-Laptop
-Convertible
-Tablet
-VirtualMachine
-Unknown
-
-Não depender apenas da existência de bateria.
-
-Combinar evidências apropriadas quando necessário.
-
----
-
-# 20. POWER / BATTERY
-
-Quando notebook:
-
-detectar informações read-only relevantes:
-
-- bateria presente;
-- AC conectado quando disponível;
-- battery percentage quando apropriado;
-- power source;
-- power plan atual, se puder ser consultado de maneira segura.
-
-Não alterar power plan.
-
-Não criar Ultimate Performance nesta fase.
-
----
-
-# 21. MONITORES
-
-Detectar quando disponível:
-
-- quantidade;
-- resolução;
-- refresh rate;
-- primary;
-- identificação básica.
-
-Suportar múltiplos monitores.
-
-Refresh rate deve representar valor real quando API permitir.
-
-Não inventar 60 Hz como fallback silencioso.
-
-Se desconhecido:
-
-Unknown/null.
-
----
-
-# 22. NETWORK
-
-Detectar adaptadores relevantes.
-
-Coletar:
-
-- nome;
-- tipo;
-- status;
-- link speed quando confiável;
-- Wi-Fi/Ethernet quando determinável;
-- physical/virtual quando determinável.
-
-Evitar expor:
-
-- IP público;
-- SSID;
-- MAC address;
-
-sem necessidade funcional explícita.
-
-Não executar alterações de rede.
-
----
-
-# 23. DEVICES
-
-Criar inventário necessário para diagnóstico futuro.
-
-Detectar:
-
-- dispositivos PnP relevantes;
-- Device Instance ID;
-- Hardware IDs quando necessário;
-- Compatible IDs quando necessário;
-- manufacturer;
-- class;
-- status;
-- problem code quando disponível.
-
-Isso será base para Driver Engine futuro.
-
-Não instalar driver nesta fase.
-
----
-
-# 24. DRIVER INVENTORY
-
-Criar somente INVENTÁRIO read-only.
-
-Para drivers/dispositivos relevantes, coletar quando disponível:
-
-- device;
-- provider;
-- version;
-- date;
-- INF;
-- signer/publisher quando acessível;
-- device status;
-- problem status.
-
-IMPORTANTE:
-
-Nesta fase NÃO:
-
-- procurar driver na internet;
-- baixar driver;
-- instalar driver;
-- atualizar driver;
-- remover driver.
-
----
-
-# 25. DRIVERS AUSENTES / PROBLEMÁTICOS
-
-O Scanner deve conseguir identificar sinais objetivos de problemas de dispositivo.
-
-Exemplos:
-
-- dispositivo sem driver;
-- Device Manager problem code;
-- driver não iniciado;
-- dispositivo desconhecido.
-
-Representar isso como FACT.
+Criar regras independentes.
 
 Exemplo conceitual:
 
-DeviceStatus:
-MissingDriver
+IAnalysisRule
 
-Não gerar ainda:
+com:
 
-"Instale driver X"
+RuleId
+Category
+Evaluate(snapshot)
+Result
 
-Essa recomendação pertence às fases posteriores.
-
----
-
-# 26. VIRTUAL MACHINE
-
-Detectar quando houver evidência suficiente:
-
-- Hyper-V
-- VMware
-- VirtualBox
-- outras VMs conhecidas
-- Unknown VM
-
-Não depender de uma única string.
-
-VM deve ser representada no snapshot porque otimizações futuras poderão precisar ser bloqueadas.
+Cada regra deve ser testável isoladamente.
 
 ---
 
-# 27. CAPABILITIES
+# 16. IDENTIDADE DAS REGRAS
 
-Criar modelo para capabilities técnicas observadas.
+Cada regra deve possuir identificador estável.
 
-Exemplos possíveis:
+Exemplo:
 
-- SecureBootAvailable
-- SecureBootEnabled
-- TpmPresent
-- VirtualizationAvailable
-- BatteryPresent
-- MultipleGpus
-- MultipleDisplays
+BB.POWER.001
+BB.STARTUP.001
+BB.DRIVER.001
 
-Somente incluir capabilities justificadas pelos requisitos atuais/futuros.
+Definir convenção consistente.
 
-Não transformar isso em Recommendation Engine.
+IDs não devem depender do texto exibido na UI.
 
 ---
 
-# 28. FONTES DE DADOS
+# 17. CATEGORIAS
 
-Priorizar APIs Windows estáveis e adequadas.
+Preparar categorias como:
 
-Podem ser utilizadas conforme necessidade:
+System
+Performance
+Gaming
+Power
+Graphics
+Memory
+Storage
+Startup
+Services
+Network
+Drivers
+Security
+Privacy
+Windows
+Maintenance
 
-- Win32 APIs;
-- SetupAPI;
-- Configuration Manager APIs;
-- Windows.Devices;
-- CIM/WMI quando apropriado;
-- Performance/Power APIs read-only;
-- Registry SOMENTE para leitura quando realmente necessário e documentado.
-
-IMPORTANTE:
-
-Registry read-only pode ser utilizado como fonte de informação nesta fase quando existir justificativa técnica.
-
-Nenhuma escrita no Registry é permitida.
-
----
-
-# 29. POWERSHELL
-
-Evitar PowerShell como mecanismo primário do Scanner.
-
-Não criar scanner baseado em:
-
-powershell.exe
-→ comando
-→ parse de texto
-
-Preferir APIs nativas/gerenciadas.
-
-Se alguma informação só puder ser obtida de forma razoável via PowerShell:
-
-documentar antes.
-
-Não implementar automaticamente.
+Não é obrigatório preencher todas nesta fase.
 
 ---
 
-# 30. WMI / CIM
+# 18. ANALYSIS RESULT
 
-WMI/CIM pode ser utilizado quando apropriado.
+Uma regra pode retornar conceitualmente:
 
-Mas:
+NotApplicable
+Healthy
+Opportunity
+Warning
+Blocked
+Unknown
 
-- encapsular;
-- usar timeout/cancellation quando possível;
-- tratar provider indisponível;
-- não espalhar queries WMI pela aplicação;
-- não bloquear UI;
-- não confiar cegamente em valores;
-- normalizar resultados.
-
-Criar adapter/provider apropriado.
+Não transformar Unknown em Opportunity.
 
 ---
 
-# 31. ASYNC
+# 19. RECOMMENDATION MODEL
 
-O scan não pode congelar a interface.
+Criar modelo robusto.
 
-Implementar execução assíncrona quando apropriado.
+Cada Recommendation deve possuir, conforme aplicável:
 
-Suportar:
+- RecommendationId
+- RuleId
+- Title
+- ShortDescription
+- TechnicalReason
+- Category
+- RiskLevel
+- EvidenceLevel
+- Compatibility
+- DetectedState
+- DesiredState
+- ExpectedImpact
+- SideEffects
+- RebootRequired
+- Reversible
+- PresetEligibility
+- UserConfirmationRequired
+- FutureOptimizationId
+- Source/Evidence metadata
 
-CancellationToken
-
-nos contratos relevantes.
-
-Não usar:
-
-async void
-
-exceto event handlers estritamente necessários na UI.
+Não preencher com textos falsos.
 
 ---
 
-# 32. PARALLELISM
+# 20. EXPECTED IMPACT
 
-Providers independentes podem executar em paralelo quando seguro.
+Não prometer números inventados.
+
+PROIBIDO:
+
+"+30 FPS"
+"-20 ms"
+"+40% performance"
+
+sem benchmark/evidência real específica.
+
+Utilizar classificações qualitativas quando necessário:
+
+Low
+Moderate
+PotentiallyHigh
+WorkloadDependent
+Unknown
+
+ou modelo equivalente.
+
+---
+
+# 21. FPS
+
+O objetivo comercial inclui gaming/FPS.
+
+Mas Recommendation Engine deve ser tecnicamente honesto.
+
+Distinguir:
+
+- FPS médio;
+- 1% low;
+- frame-time;
+- stutter;
+- input latency;
+- background contention;
+- boot time;
+- responsiveness;
+- power consumption.
+
+Uma otimização pode melhorar:
+
+background contention
+
+sem necessariamente aumentar:
+
+average FPS.
+
+Não chamar tudo de "FPS boost".
+
+---
+
+# 22. COMPATIBILITY ENGINE
+
+Criar avaliação reutilizável.
+
+Uma Recommendation deve poder declarar:
+
+Compatible
+Incompatible
+Conditional
+Unknown
+
+E razões.
+
+Exemplo:
+
+Recommendation:
+High Performance Power Policy
+
+Compatibility:
+Conditional
+
+Reason:
+Notebook detected.
+
+Isso será usado futuramente pelo Optimization Engine.
+
+---
+
+# 23. HARDWARE AWARENESS
+
+As recomendações devem considerar fatos reais.
+
+Exemplos:
+
+Laptop
+≠
+Desktop
+
+Integrated GPU
+≠
+Dedicated GPU
+
+NVMe
+≠
+HDD
+
+Windows 10
+≠
+Windows 11
+
+VM
+≠
+PhysicalMachine
+
+AMD
+≠
+Intel
+
+NVIDIA
+≠
+AMD
+≠
+Intel
+
+Nunca aplicar regra universal quando o contexto importa.
+
+---
+
+# 24. LAPTOP
+
+Evitar recomendações agressivas de energia automaticamente em notebook.
+
+Considerar:
+
+- bateria;
+- AC;
+- temperatura não disponível;
+- autonomia;
+- OEM power management.
+
+Futuramente o usuário poderá optar por performance máxima.
+
+Mas Analysis deve informar trade-off.
+
+---
+
+# 25. VM
+
+Máquina virtual deve bloquear ou limitar recomendações incompatíveis.
+
+Não recomendar ajustes específicos de hardware físico quando executado em VM sem evidência adequada.
+
+---
+
+# 26. STARTUP ANALYSIS
+
+Pode analisar fatos já coletados sobre Startup.
+
+Identificar oportunidades apenas quando houver evidência suficiente.
+
+Não classificar automaticamente todo startup como ruim.
+
+Não recomendar desabilitar:
+
+- antivírus;
+- drivers;
+- software crítico;
+- componentes desconhecidos;
+
+sem conhecimento suficiente.
+
+Unknown publisher/item deve ser tratado com cautela.
+
+---
+
+# 27. PROCESS ANALYSIS
+
+Processes podem ajudar a detectar:
+
+- alta quantidade de processos;
+- background activity;
+
+mas NÃO recomendar encerrar processo específico apenas por existir.
+
+Evitar heurística:
+
+"muitos processos = PC ruim".
+
+Não criar kill process nesta fase.
+
+---
+
+# 28. SERVICES ANALYSIS
+
+Pode estruturar arquitetura para futuras recomendações de Services.
 
 Porém:
 
-não criar paralelismo indiscriminado.
+não criar lista gigantesca de "serviços inúteis" sem validação técnica.
 
-Evitar:
+Service tweak futuro deve conhecer:
 
-- saturação;
-- corrida;
-- acesso inseguro;
-- dezenas de consultas WMI simultâneas.
+- dependências;
+- Windows edition;
+- hardware;
+- features;
+- rollback;
+- side effects.
 
-Definir estratégia controlada.
-
----
-
-# 33. TIMEOUTS
-
-Providers potencialmente lentos devem possuir política de timeout.
-
-Uma API travada não pode deixar BorealBoost indefinidamente em:
-
-"Analisando..."
-
-Quando timeout ocorrer:
-
-- registrar;
-- marcar provider;
-- continuar quando seguro;
-- refletir partial scan.
+Nesta fase, mantenha recomendações conservadoras.
 
 ---
 
-# 34. PROVIDER RESULT
+# 29. POWER ANALYSIS
 
-Cada provider deve possuir resultado observável.
+Pode analisar:
+
+- desktop/notebook;
+- AC/battery;
+- current power context;
+- CPU/hardware.
+
+Pode detectar oportunidade futura de perfil de performance.
+
+Não criar plano de energia nesta fase.
+
+---
+
+# 30. GPU ANALYSIS
+
+Pode detectar:
+
+- vendor;
+- quantidade;
+- driver state;
+- Basic Display Adapter;
+- device problem;
+- multi-GPU.
+
+Não recomendar configurações específicas do painel NVIDIA/AMD que o Scanner não consegue comprovar.
+
+---
+
+# 31. DRIVER ANALYSIS
+
+Pode recomendar conceitualmente:
+
+"Investigar dispositivo sem driver"
+
+quando Scanner possui evidência objetiva.
+
+Não dizer:
+
+"Driver X está desatualizado"
+
+sem fonte de versão mais recente.
+
+Driver Engine real pertence à Fase 6.
+
+---
+
+# 32. STORAGE ANALYSIS
+
+Pode identificar fatos relevantes como:
+
+- pouco espaço livre;
+- HDD vs SSD quando confiável;
+- system drive próximo da capacidade.
+
+Definir thresholds justificáveis e centralizados.
+
+Não executar limpeza.
+
+---
+
+# 33. MEMORY ANALYSIS
+
+Pode analisar:
+
+- RAM instalada;
+- RAM visível;
+- módulos;
+- quantidade.
+
+Evitar recomendações simplistas como:
+
+"16 GB é ruim".
+
+Contexto importa.
+
+Não recomendar XMP/EXPO sem evidência suficiente.
+
+---
+
+# 34. SECURITY
+
+Não recomendar redução de segurança apenas para aumentar performance.
+
+Itens como:
+
+- Defender;
+- Firewall;
+- Secure Boot;
+- VBS;
+- Memory Integrity;
+
+devem possuir tratamento especial.
+
+Uma possível alteração futura que reduza segurança deve ser classificada claramente como risco elevado e nunca entrar silenciosamente em Basic/Medium.
+
+Nesta fase não aplicar nenhuma.
+
+---
+
+# 35. UNKNOWN
+
+Regra crítica:
+
+Unknown
+≠
+False
+
+Unknown
+≠
+Opportunity
+
+Unknown
+≠
+Compatible
+
+Se informação necessária não estiver disponível:
+
+Recommendation pode ser:
+
+Blocked
+Conditional
+Unknown
+NotApplicable
+
+conforme caso.
+
+---
+
+# 36. CONFLITOS
+
+Preparar arquitetura para recomendações conflitantes.
 
 Exemplo conceitual:
 
-Success
-Partial
-Failed
-NotSupported
-TimedOut
+Recommendation A
+requer configuração X.
 
-Com:
+Recommendation B
+requer configuração Y incompatível.
 
-- duration;
-- warnings;
-- errors;
-- source.
+Criar metadados como:
 
-Não usar exceptions como fluxo normal.
+ConflictsWith
+Requires
+Supersedes
+
+quando necessário.
+
+Não implementar solver excessivamente complexo se ainda não houver casos reais.
 
 ---
 
-# 35. NORMALIZAÇÃO
+# 37. DEPENDÊNCIAS
+
+Preparar:
+
+RequiresRecommendation
+RequiresCapability
+RequiresState
+
+quando houver necessidade real.
+
+Não criar dependências fictícias.
+
+---
+
+# 38. DEDUPLICAÇÃO
+
+Duas regras não devem gerar recomendações semanticamente duplicadas.
+
+Criar estratégia por RecommendationId/RuleId.
+
+---
+
+# 39. DETERMINISMO
+
+Dado o mesmo:
+
+SystemSnapshot
+RuleCatalogVersion
+
+o resultado deve ser essencialmente determinístico.
+
+Não usar aleatoriedade.
+
+Não usar IA generativa para decidir tweaks.
+
+---
+
+# 40. RULE CATALOG
+
+Criar catálogo estruturado das regras.
+
+Pode ser inicialmente code-first se isso for mais seguro para esta fase.
+
+Não criar DSL complexa prematuramente.
 
 Separar:
 
-raw data
+rule metadata
 
 de:
 
-domain snapshot.
+evaluation logic
 
-Exemplo:
+quando apropriado.
 
-WMI/Win32/SetupAPI
+---
+
+# 41. VERSIONAMENTO
+
+AnalysisResult deve registrar:
+
+- AnalysisId
+- ScanId
+- StartedAtUtc
+- CompletedAtUtc
+- EngineVersion
+- RuleCatalogVersion
+
+Isso será importante para relatórios e comparação futura.
+
+---
+
+# 42. SOURCES / EVIDENCE
+
+Preparar modelo para associar recomendação à justificativa.
+
+Fontes podem futuramente incluir:
+
+- Microsoft documentation;
+- vendor documentation;
+- WinUtil como referência funcional;
+- evidência interna validada.
+
+Não precisa realizar pesquisa web em runtime.
+
+Não incluir URLs inventadas.
+
+---
+
+# 43. WINUTIL
+
+WinUtil continua sendo referência funcional.
+
+Não copiar:
+
+- código;
+- UI;
+- marca;
+- catálogo cegamente.
+
+Quando uma ideia vier do WinUtil:
+
+reavaliar dentro da arquitetura BorealBoost.
+
+---
+
+# 44. REGRAS INICIAIS
+
+Implementar um conjunto pequeno, porém real e bem testado.
+
+Priorizar regras baseadas em fatos já confiáveis.
+
+Exemplos aceitáveis para avaliação:
+
+- dispositivo com problema;
+- dispositivo sem driver;
+- Microsoft Basic Display Adapter;
+- espaço livre criticamente baixo;
+- Windows incompatível/legado;
+- scan parcial;
+- máquina virtual;
+- contexto de energia;
+- startup excessivo somente se houver critério defensável;
+- capabilities relevantes.
+
+Não criar dezenas de regras ruins para aumentar quantidade.
+
+Qualidade > quantidade.
+
+---
+
+# 45. NÃO CRIAR TWEAK CATALOG AINDA
+
+Recommendation catalog
+≠
+Optimization catalog.
+
+Uma Recommendation pode apontar para:
+
+FutureOptimizationId
+
+mas a operação ainda não deve existir.
+
+---
+
+# 46. UI — ANÁLISE
+
+Evoluir a experiência após o Scanner.
+
+Fluxo:
+
+Scan
 ↓
-Raw DTO
+Analyze
 ↓
-Normalization
-↓
-Domain Model
+Results
 
-Isso evita contaminar o domínio com detalhes das APIs Windows.
+ou análise automática após snapshot válido, se coerente com UX_SPECIFICATION.md.
 
----
-
-# 36. UNKNOWN É VÁLIDO
-
-Regra importante:
-
-UNKNOWN é melhor do que informação inventada.
-
-Quando não for possível determinar:
-
-- GPU type;
-- media type;
-- refresh rate;
-- RAM speed;
-- firmware;
-- driver state;
-
-representar explicitamente:
-
-Unknown/null/Unavailable
-
-conforme o modelo.
-
-Não adivinhar.
+A análise deve ser rápida e não bloquear UI.
 
 ---
 
-# 37. PROVENANCE
+# 47. ANALYSIS PROGRESS
 
-Para dados importantes, permitir rastrear conceitualmente a origem quando isso ajudar diagnóstico.
+Se houver etapas perceptíveis:
 
-Exemplo:
+mostrar progresso real.
 
-Source:
-SetupAPI
-WMI
-Win32
-RegistryReadOnly
+Não criar animação artificial longa para parecer que o programa está "pensando".
 
-Não é necessário mostrar tudo ao cliente.
+Se análise levar 50 ms:
 
-Pode ser utilizado em logs/debug.
+mostrar resultado.
 
 ---
 
-# 38. PRIVACIDADE
+# 48. SUMMARY
 
-O SystemSnapshot não deve virar ferramenta de fingerprinting.
+Apresentar resumo como:
 
-Evitar armazenar sem necessidade:
+Sistema analisado
+X oportunidades encontradas
+Y avisos
+Z itens não aplicáveis
 
-- username;
-- email;
-- IP público;
-- MAC;
-- SSID;
-- Windows product key;
-- serial numbers;
-- machine GUID;
-- tokens;
-- secrets.
+Somente com dados reais.
 
-Se algum identificador único for tecnicamente necessário futuramente, isso deverá ser decisão explícita.
+Não chamar todos de problemas.
 
 ---
 
-# 39. LOGGING
+# 49. RECOMMENDATION CARDS
 
-Registrar:
+Cada card deve poder mostrar:
 
-- início do scan;
-- ScanId;
-- providers iniciados;
-- providers concluídos;
-- duração;
-- falhas;
-- timeouts;
-- partial scan;
-- conclusão.
+- título;
+- descrição;
+- categoria;
+- risco;
+- impacto esperado;
+- compatibilidade;
+- motivo;
+- status.
 
-Não registrar informações sensíveis.
+Design:
 
-Não despejar snapshot inteiro no log indiscriminadamente.
+BorealBoost dark SaaS premium.
 
----
-
-# 40. CACHE
-
-Não implementar cache complexo prematuramente.
-
-Durante uma única sessão, o snapshot pode ser mantido em memória.
-
-Se persistência for necessária pela arquitetura:
-
-- documentar;
-- versionar schema;
-- usar paths aprovados;
-- evitar dados sensíveis.
-
-Não criar banco de dados apenas para o Scanner nesta fase sem necessidade arquitetural clara.
+Usar design system existente.
 
 ---
 
-# 41. UI — PÁGINA ANÁLISE
+# 50. FILTROS
 
-Transformar o placeholder de Análise em uma interface funcional do Scanner.
+Permitir filtrar quando fizer sentido:
 
-Fluxo esperado:
+- Todos
+- Básico
+- Médio
+- Avançado
+- Categoria
+- Risco
 
-Estado inicial
-↓
-"Analisar computador"
-↓
-Scanning
-↓
-Progress
-↓
-Resultado
+Não criar UX excessivamente complexa.
 
 ---
 
-# 42. PROGRESSO
+# 51. DETALHES
 
-O usuário solicitou visualização percentual.
+Permitir visualizar:
 
-Implementar progresso honesto.
+Por que isso foi recomendado?
 
-Não usar porcentagem fictícia baseada apenas em timer.
+Mostrar explicação compreensível.
 
-O progresso deve ser derivado de etapas/providers conhecidos.
+Separar:
 
-Exemplo:
+Explicação para cliente
 
-0%
-Preparando análise
+de:
 
-15%
-Sistema operacional
+Detalhes técnicos
 
-30%
-Processador
-
-...
-
-Os pesos podem ser definidos com base nas etapas reais.
-
-Se execução paralela tornar percentual exato impossível, usar progresso ponderado por providers concluídos.
-
-Nunca mostrar 99% artificialmente enquanto aguarda tarefa desconhecida.
+quando apropriado.
 
 ---
 
-# 43. STATUS VISUAL DO SCAN
+# 52. SELEÇÃO
 
-Mostrar etapa atual de forma amigável.
+Pode permitir selecionar/desmarcar recomendações para preparar futura otimização.
+
+Porém botão:
+
+"Aplicar"
+
+não deve executar nada nesta fase.
+
+Se existir visualmente:
+
+deve estar desabilitado ou explicitamente marcado como indisponível nesta fase de desenvolvimento.
+
+---
+
+# 53. PRESET PREVIEW
+
+Implementar preview seguro:
+
+Básico
+Médio
+Avançado
+
+Selecionar preset pode apenas filtrar/marcar recomendações elegíveis.
+
+Não executar.
+
+---
+
+# 54. ADVANCED WARNING
+
+Ao visualizar itens Advanced/Aggressive:
+
+mostrar aviso visual adequado.
+
+Exemplo conceitual:
+
+"Esta recomendação pode afetar compatibilidade, segurança ou comportamento do Windows."
+
+Sem alarmismo.
+
+---
+
+# 55. BOREAL SCORE
+
+NÃO implementar Boreal Score operacional ainda.
+
+Pode haver integração futura prevista no modelo.
+
+Não calcular score com base simplesmente na quantidade de recomendações.
+
+---
+
+# 56. TESTES UNITÁRIOS
+
+Cobrir:
+
+- AnalysisRule;
+- rule evaluation;
+- compatibility;
+- risk;
+- evidence;
+- Unknown;
+- NotApplicable;
+- Blocked;
+- deduplication;
+- conflicts;
+- preset eligibility;
+- deterministic result;
+- metadata/versioning.
+
+Cada regra real adicionada deve possuir testes positivos e negativos.
+
+---
+
+# 57. SNAPSHOT FIXTURES
+
+Criar builders/fixtures para cenários.
 
 Exemplos:
 
-Analisando processador...
-Analisando placa de vídeo...
-Verificando memória...
-Analisando armazenamento...
-Verificando dispositivos...
-Finalizando análise...
+DesktopGaming
+Laptop
+VirtualMachine
+Windows10Legacy
+Windows11
+IntegratedGpu
+DedicatedGpu
+MissingDriver
+LowDiskSpace
+PartialScan
 
-Não mostrar nomes internos de classes ao cliente.
-
----
-
-# 44. RESULTADO VISUAL
-
-Após scan, apresentar resumo organizado.
-
-Cards sugeridos:
-
-Sistema
-CPU
-GPU
-Memória
-Armazenamento
-Dispositivos
-Monitores
-Rede
-
-Não transformar essa tela em painel excessivamente técnico.
-
-Detalhes avançados podem ficar em expansão/modal/seção técnica.
+Evitar fixtures gigantes frágeis.
 
 ---
 
-# 45. HARDWARE SUMMARY
+# 58. TESTES DE MATRIZ
 
-Dashboard pode começar a consumir o último snapshot em memória para mostrar informações reais.
+Testar combinações relevantes.
 
 Exemplo:
 
-CPU
-GPU
-RAM
-Windows
+Laptop + Battery
+Desktop + Dedicated GPU
+VM + Unknown GPU
+Windows10 + LegacySupported
+DeviceProblem
+PartialScan
 
-Não mostrar valores fictícios.
-
-Se não houver scan:
-
-"Análise ainda não realizada."
+Confirmar que regras não vazam para contextos incompatíveis.
 
 ---
 
-# 46. DRIVER STATUS VISUAL
+# 59. TESTES DE SEGURANÇA
 
-Pode mostrar fatos como:
+Garantir que Analysis Engine não introduziu:
 
-"2 dispositivos apresentam problemas"
-
-ou:
-
-"Nenhum problema de dispositivo detectado"
-
-somente quando derivado do scan real.
-
-Não mostrar:
-
-"2 drivers precisam ser atualizados"
-
-porque isso exigiria comparação com fonte externa, que ainda não existe.
-
----
-
-# 47. ERROS NA UI
-
-Se provider falhar:
-
-não mostrar stack trace.
-
-Exemplo:
-
-"Algumas informações não puderam ser identificadas."
-
-Permitir detalhes técnicos apropriados em log.
-
-Scan parcial deve ser claramente indicado.
-
----
-
-# 48. CANCELAMENTO
-
-Usuário deve poder cancelar scan quando tecnicamente viável.
-
-Cancelamento deve:
-
-- sinalizar providers;
-- parar trabalho futuro;
-- não corromper estado;
-- não apresentar scan cancelado como concluído.
-
----
-
-# 49. SCAN CONCURRENCY
-
-Não permitir iniciar múltiplos scans concorrentes acidentalmente pela UI.
-
-Definir comportamento:
-
-- botão desabilitado durante scan;
-ou
-- cancelamento/substituição explícita.
-
-Não permitir corrida de snapshots.
-
----
-
-# 50. TESTES UNITÁRIOS
-
-Criar testes para:
-
-- normalização;
-- OS classification;
-- Windows compatibility;
-- CPU model;
-- GPU collection;
-- memory normalization;
-- storage normalization;
-- device status;
-- driver inventory;
-- provider result;
-- partial scan;
-- timeout;
-- cancellation;
-- Unknown handling;
-- progress calculation.
-
-Mockar/adaptar APIs quando necessário.
-
-Não depender exclusivamente da máquina do desenvolvedor.
-
----
-
-# 51. TESTES DE INTEGRAÇÃO
-
-Criar testes read-only quando possível para:
-
-- OS provider;
-- CPU provider;
-- memory provider;
-- storage provider;
-- device provider;
-- display provider.
-
-Testes devem tolerar hardware diferente.
-
-Não fazer assert como:
-
-GPU == "RTX 4090"
-
-ou qualquer hardware específico.
-
-Validar invariantes.
-
----
-
-# 52. SYSTEM TEST
-
-Criar teste seguro que execute scan completo na máquina atual.
-
-Validar:
-
-- não crash;
-- snapshot produzido;
-- ScanId válido;
-- OS identificado;
-- CPU identificada quando API disponível;
-- RAM > 0 quando API disponível;
-- duração válida;
-- providers reportados.
-
-Não modificar sistema.
-
----
-
-# 53. SAFETY TEST
-
-Adicionar teste/checagem para garantir que o Scanner não introduziu chamadas operacionais proibidas.
-
-Auditar ocorrências de:
-
-- Registry write;
-- ServiceController mutation;
 - Process.Start;
-- powershell;
-- cmd.exe;
-- powercfg;
-- DISM;
-- SFC;
-- PnPUtil mutation;
-- Windows Update mutation;
-- AppX mutation.
+- PowerShell;
+- cmd;
+- Registry write;
+- Service mutation;
+- driver install;
+- network mutation.
 
-Qualquer ocorrência deve ser explicada.
+Analysis deve ser pure/read-only sempre que possível.
 
 ---
 
-# 54. PERFORMANCE
+# 60. GOLDEN TESTS
 
-Scanner não deve ser absurdamente lento.
+Quando útil, criar snapshots de entrada conhecidos e validar conjunto esperado de RecommendationIds.
 
-Medir duração na máquina de desenvolvimento.
+Evitar golden files enormes e frágeis.
 
-Não definir SLA artificial antes de medir.
+---
+
+# 61. PERFORMANCE
+
+Analysis Engine deve ser leve.
+
+Medir com snapshots representativos.
+
+Não otimizar prematuramente.
+
+Mas não criar arquitetura que faça consultas ao Windows novamente para cada regra.
+
+Regra importante:
+
+Analysis deve trabalhar principalmente sobre SystemSnapshot.
+
+Não repetir Scanner.
+
+---
+
+# 62. SEM CONSULTAS ESCONDIDAS
+
+IAnalysisRule não deve sair consultando:
+
+Registry
+WMI
+Network
+Process
+etc.
+
+por conta própria.
+
+Se informação é necessária:
+
+ela deve idealmente existir no snapshot/capabilities.
+
+Isso mantém:
+
+determinismo
+testabilidade
+segurança.
+
+---
+
+# 63. LOGGING
 
 Registrar:
 
-- duração total;
-- providers mais lentos;
-- timeouts.
+- AnalysisId;
+- ScanId;
+- engine version;
+- rule catalog version;
+- duração;
+- quantidade de regras;
+- resultados agregados;
+- falhas.
 
-Otimizar apenas gargalos reais.
-
----
-
-# 55. COMPATIBILIDADE
-
-Validar conceitualmente e com testes disponíveis:
-
-Windows 10 22H2 x64
-
-Windows 11 suportado
-
-Quando não houver VM disponível:
-
-marcar como NÃO VALIDADO.
-
-Não fingir teste de Windows 10 executando somente no Windows 11.
+Não despejar dados sensíveis.
 
 ---
 
-# 56. DOCUMENTAÇÃO
+# 64. FAILURE ISOLATION
 
-Atualizar conforme necessário:
+Falha inesperada em uma regra não deve necessariamente destruir toda análise.
 
-README.md
-ARCHITECTURE.md
-DOMAIN_MODEL.md
-SECURITY.md
-COMPATIBILITY_MATRIX.md
+Definir comportamento seguro.
 
-Criar se útil:
+Regra defeituosa deve:
 
-SYSTEM_SCANNER.md
+- ser registrada;
+- gerar warning técnico;
+- não produzir Recommendation falsa.
+
+---
+
+# 65. PRIVACIDADE
+
+AnalysisResult não deve duplicar indiscriminadamente dados sensíveis do SystemSnapshot.
+
+Recommendation deve carregar apenas contexto necessário.
+
+Aplicar política de redaction existente quando necessário.
+
+---
+
+# 66. DOCUMENTAÇÃO
+
+Criar:
+
+ANALYSIS_ENGINE.md
 
 Documentar:
 
-- providers;
-- fontes;
-- fallbacks;
-- timeouts;
-- normalização;
-- limitações;
-- privacidade;
-- comportamento Unknown.
+- arquitetura;
+- regras;
+- lifecycle;
+- compatibility;
+- risk;
+- evidence;
+- presets;
+- determinismo;
+- versionamento;
+- failure isolation.
+
+Atualizar conforme necessário:
+
+- ARCHITECTURE.md
+- ARCHITECTURE_DECISION_RECORD.md
+- DOMAIN_MODEL.md
+- REQUIREMENTS.md
+- UX_SPECIFICATION.md
+- IMPLEMENTATION_ROADMAP.md
+- SECURITY.md
 
 ---
 
-# 57. NÃO IMPLEMENTAR RECOMMENDATION ENGINE
+# 67. NÃO IMPLEMENTAR OPTIMIZATION ENGINE OPERACIONAL
 
-Não criar nesta fase:
+Mesmo que exista:
 
-if (ram < X)
-    recommend(...)
+FutureOptimizationId
 
-if (gpu == ...)
-    optimize(...)
+não implementar:
 
-if (Windows11)
-    tweak(...)
+Apply
+Undo
+RegistryOperation
+ServiceOperation
+PowerOperation
 
-Essas decisões pertencem à Fase 3.
-
-Scanner coleta fatos.
-
-Analysis interpreta fatos.
-
-Optimization executa mudanças.
-
-Preservar essa separação.
+nesta fase.
 
 ---
 
-# 58. NÃO IMPLEMENTAR DRIVER ENGINE OPERACIONAL
+# 68. NÃO IMPLEMENTAR ROLLBACK
 
-Mesmo que o Scanner encontre:
+Não:
 
-MissingDriver
+- criar restore point;
+- salvar registry snapshots operacionais;
+- alterar power plans;
+- executar undo.
 
-não:
-
-- procurar driver;
-- abrir site;
-- baixar;
-- instalar;
-- atualizar.
-
-Isso pertence à fase Drivers.
+Isso pertence à Fase 4 consolidada.
 
 ---
 
-# 59. NÃO IMPLEMENTAR BOREAL SCORE
+# 69. NÃO IMPLEMENTAR DRIVERS
 
-Não calcular Boreal Score nesta fase.
+Recommendation:
 
-O Scanner apenas fornecerá dados futuros para o algoritmo.
+"Dispositivo sem driver detectado"
 
----
+é permitido.
 
-# 60. NÃO IMPLEMENTAR BENCHMARK
+Ação:
 
-Não executar:
+"Baixar e instalar driver"
 
-- CPU benchmark;
-- GPU benchmark;
-- disk benchmark;
-- FPS benchmark;
-- latency benchmark.
-
-Isso pertence à fase apropriada.
+não.
 
 ---
 
-# 61. BUILD E TESTES
+# 70. NÃO IMPLEMENTAR BENCHMARK
 
-Ao concluir executar no ambiente padrão:
+Não validar recomendação executando benchmark ainda.
+
+Benchmark pertence à Fase 6.
+
+---
+
+# 71. BUILD
+
+Ao concluir executar:
 
 dotnet --info
 
@@ -1314,195 +1379,181 @@ dotnet build .\BorealBoost.sln --no-restore
 
 dotnet test .\BorealBoost.sln --no-build
 
-O SDK global 10.0.400 já foi instalado e validado na conclusão da Fase 1.
-
-Não utilizar SDK portátil se o SDK global estiver funcionando.
-
----
-
-# 62. WARNINGS
-
-Build esperado:
+Esperado:
 
 0 errors.
 
 Investigar warnings novos.
 
-Não esconder warning causado pela implementação.
+---
+
+# 72. EXECUÇÃO REAL
+
+Executar BorealBoost.App quando possível.
+
+Fluxo real:
+
+Scanner
+→ Snapshot
+→ Analysis
+→ Recommendations
+
+Validar na máquina atual.
+
+Não aplicar nada.
 
 ---
 
-# 63. EXECUÇÃO REAL
+# 73. VALIDAÇÃO REAL
 
-Executar BorealBoost.App quando o ambiente permitir.
+No relatório, informar sem dados sensíveis:
 
-Realizar scan real seguro.
+- quantidade de regras avaliadas;
+- Healthy;
+- Opportunities;
+- Warnings;
+- Blocked;
+- Unknown;
+- Recommendations geradas;
+- distribuição por RiskLevel;
+- duração da análise.
 
-Registrar:
-
-- Windows detectado;
-- CPU;
-- GPU(s);
-- RAM;
-- storage;
-- devices;
-- displays;
-- duração;
-- providers com falha.
-
-Não precisa incluir identificadores sensíveis no relatório.
+Não presumir que mais Recommendations significa análise melhor.
 
 ---
 
-# 64. REVISÃO DO DIFF
+# 74. AUDITORIA DE SEGURANÇA
 
-Antes de concluir:
+Antes de concluir fazer busca por:
+
+Registry.SetValue
+CreateSubKey
+ServiceController.Start
+ServiceController.Stop
+Process.Start
+powershell
+cmd.exe
+powercfg
+netsh
+DISM
+SFC
+PnPUtil
+Windows Update
+AppX
+
+Classificar qualquer ocorrência nova.
+
+Agent bootstrap existente não conta como funcionalidade da Fase 3, mas deve permanecer isolado.
+
+---
+
+# 75. GIT DIFF
+
+Revisar:
 
 git diff
 
-Revisar todas as alterações.
+Confirmar que nenhuma operação modificadora foi adicionada.
 
-Confirmar:
-
-- nenhuma otimização;
-- nenhuma escrita no sistema;
-- nenhum driver instalado;
-- nenhuma execução arbitrária;
-- nenhuma fase futura antecipada.
+Não fazer commit automaticamente.
 
 ---
 
-# 65. CRITÉRIOS DE ACEITAÇÃO
+# 76. CRITÉRIOS DE ACEITAÇÃO
 
-Fase 2 somente poderá ser considerada concluída quando:
+Fase 3 somente poderá ser considerada concluída quando:
 
-- Scanner modular existir;
-- SystemSnapshot existir;
-- OS real for detectado;
-- CPU real for detectada;
-- GPU(s) forem enumeradas;
-- RAM for detectada;
-- storage for detectado;
-- motherboard/firmware forem tratados;
-- desktop/notebook/VM possuir classificação;
-- displays forem tratados;
-- network inventory básico existir;
-- PnP devices forem inventariados;
-- driver inventory read-only existir;
-- problemas de dispositivos puderem ser representados;
+- Analysis Engine existir;
+- Rule Engine modular existir;
+- Recommendation model existir;
+- Compatibility evaluation existir;
+- RiskLevel existir;
+- EvidenceLevel existir;
+- Preset eligibility existir;
 - Unknown for tratado corretamente;
-- provider failure não derrubar scan completo;
-- timeout existir onde necessário;
-- cancellation existir;
-- UI não congelar;
-- progresso real existir;
-- scan parcial existir;
-- logs existirem;
-- privacidade for respeitada;
-- testes passarem;
+- regras forem determinísticas;
+- regras trabalharem sobre snapshot;
+- conjunto inicial de regras reais existir;
+- regras tiverem testes;
+- UI mostrar análise real;
+- recomendações tiverem justificativa;
+- Advanced/Aggressive tiverem aviso;
+- nenhum tweak for executado;
+- nenhuma otimização for aplicada;
 - build passar;
-- nenhuma modificação operacional do Windows existir.
+- testes passarem;
+- fluxo Scanner → Analysis funcionar.
 
 ---
 
-# 66. ENTREGA OBRIGATÓRIA
+# 77. ENTREGA
 
-Ao concluir apresentar:
+Ao finalizar apresentar:
 
-## Resumo
+## Summary
 
-O que foi implementado.
+## Architecture
 
-## Arquivos criados/modificados
+## Rules Implemented
 
-Separar por projeto.
+Para cada regra:
 
-## Scanner Architecture
+- RuleId
+- categoria
+- condição
+- resultado possível
+- Risk
+- Evidence
 
-Listar providers.
+## Recommendation Model
 
-## Data Sources
+## Compatibility Model
 
-Para cada provider informar fonte principal.
+## Presets
 
-Exemplo:
+## UI
 
-CPU → ...
-GPU → ...
-Storage → ...
-Devices → ...
-
-## SystemSnapshot
-
-Resumir estrutura final.
-
-## Real Machine Validation
-
-Informar, sem dados sensíveis:
-
-- Windows;
-- CPU;
-- quantidade de GPUs;
-- RAM total;
-- quantidade de discos;
-- quantidade de displays;
-- quantidade de dispositivos com problema;
-- scan duration.
-
-## Provider Results
+## Real Machine Analysis
 
 Informar:
 
-Success
-Partial
-Failed
-TimedOut
-NotSupported
-
-## Privacy
-
-Confirmar quais identificadores foram deliberadamente excluídos.
+- rules evaluated;
+- opportunities;
+- warnings;
+- blocked;
+- unknown;
+- recommendations;
+- risk distribution;
+- duration.
 
 ## Tests
 
-Informar:
-
-- testes adicionados;
+- novos testes;
 - total;
 - pass/fail.
 
 ## Build
 
-Informar:
-
-restore
-build
-test
-
-## Performance
-
-Informar duração do scan e providers mais lentos.
-
-## Compatibility
-
-Informar o que foi realmente validado e o que permanece não validado.
+- restore;
+- build;
+- test.
 
 ## Safety
 
-Responder explicitamente:
+Responder:
 
-1. Scanner escreve no Registry?
-2. Scanner altera Services?
-3. Scanner altera Power?
-4. Scanner altera DNS/rede?
-5. Scanner instala/atualiza drivers?
-6. Scanner executa Windows Update?
-7. Scanner executa PowerShell/cmd arbitrário?
-8. Scanner executa otimizações?
-9. Alguma operação destrutiva foi adicionada?
-10. Fase 3 foi iniciada?
+1. Analysis escreve Registry?
+2. Altera Services?
+3. Altera Power?
+4. Altera Network/DNS?
+5. Instala drivers?
+6. Executa comandos?
+7. Executa Optimization?
+8. Executa Rollback?
+9. Alguma funcionalidade destrutiva foi adicionada?
+10. Fase 4 foi iniciada?
 
-Respostas esperadas:
+Esperado:
 
 1. NÃO
 2. NÃO
@@ -1515,26 +1566,30 @@ Respostas esperadas:
 9. NÃO
 10. NÃO
 
-## Pendências
+## Limitations
 
-Listar limitações reais.
+## Pending Validation
+
+## Git Diff Review
 
 ---
 
-# 67. REGRA FINAL
+# 78. REGRA FINAL
 
-Não tente transformar o Scanner no produto inteiro.
+Esta fase deve tornar o BorealBoost inteligente o suficiente para explicar:
 
-A responsabilidade desta fase é responder com confiança:
+"Encontrei estas oportunidades porque a sua máquina apresenta estes fatos."
 
-"Qual é o estado atual deste computador?"
+Mas ainda incapaz de dizer ao Windows:
 
-e não:
+"Execute estas alterações."
 
-"O que devemos mudar neste computador?"
+Não confundir Recommendation com Optimization.
 
-Essa segunda pergunta pertence à Fase 3.
+Não buscar quantidade artificial de recomendações.
+
+É melhor possuir 10 regras tecnicamente confiáveis do que 100 "FPS tweaks" sem evidência.
 
 Não faça commit automaticamente.
 
-Não inicie a Fase 3.
+Não inicie a Fase 4.

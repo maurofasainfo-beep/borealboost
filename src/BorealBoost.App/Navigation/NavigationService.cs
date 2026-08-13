@@ -7,16 +7,19 @@ public sealed class NavigationService : INavigationService
 {
     private readonly Func<DashboardPage> _dashboardPageFactory;
     private readonly Func<ScannerPage> _scannerPageFactory;
+    private readonly Func<AnalysisPage> _analysisPageFactory;
     private readonly Func<PlaceholderPage> _placeholderPageFactory;
     private Frame? _frame;
 
     public NavigationService(
         Func<DashboardPage> dashboardPageFactory,
         Func<ScannerPage> scannerPageFactory,
+        Func<AnalysisPage> analysisPageFactory,
         Func<PlaceholderPage> placeholderPageFactory)
     {
         _dashboardPageFactory = dashboardPageFactory;
         _scannerPageFactory = scannerPageFactory;
+        _analysisPageFactory = analysisPageFactory;
         _placeholderPageFactory = placeholderPageFactory;
     }
 
@@ -42,6 +45,13 @@ public sealed class NavigationService : INavigationService
         if (routeKey == "Scanner")
         {
             var page = _scannerPageFactory();
+            _frame.Content = page;
+            return true;
+        }
+
+        if (routeKey == "Analysis")
+        {
+            var page = _analysisPageFactory();
             _frame.Content = page;
             return true;
         }

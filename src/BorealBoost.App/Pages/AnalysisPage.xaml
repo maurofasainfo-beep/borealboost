@@ -1,0 +1,165 @@
+<Page
+    x:Class="BorealBoost.App.Pages.AnalysisPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Background="{StaticResource BorealBackgroundBrush}" Padding="32">
+        <ScrollViewer>
+            <StackPanel Spacing="24" MaxWidth="1120">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Analise" Style="{StaticResource BorealDisplayTextBlockStyle}" />
+                    <TextBlock Text="Recommendation Engine read-only baseado no snapshot do Scanner." Style="{StaticResource BorealBodyTextBlockStyle}" />
+                </StackPanel>
+
+                <Border Style="{StaticResource BorealCardBorderStyle}">
+                    <StackPanel Margin="24" Spacing="14">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Content="Analisar snapshot" Click="OnAnalyzeClick" IsEnabled="{Binding CanAnalyze}" />
+                            <TextBlock Grid.Column="1" Text="{Binding StatusText}" Style="{StaticResource BorealBodyTextBlockStyle}" VerticalAlignment="Center" />
+                        </Grid>
+
+                        <TextBlock Text="{Binding SummaryText}" Foreground="{StaticResource BorealTextPrimaryBrush}" FontSize="16" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding RulesSummary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        <TextBlock Text="{Binding RecommendationSummary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        <TextBlock Text="{Binding RiskDistribution}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        <TextBlock Text="{Binding DurationSummary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource BorealCardBorderStyle}">
+                    <StackPanel Margin="24" Spacing="12">
+                        <TextBlock Text="Presets preview" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                        <TextBlock Text="Selecionar preset apenas filtra recomendacoes. Nada e aplicado nesta fase." Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Content="Todos" Click="OnAllPresetClick" />
+                            <Button Grid.Column="1" Content="Basico" Click="OnBasicPresetClick" />
+                            <Button Grid.Column="2" Content="Medio" Click="OnMediumPresetClick" />
+                            <Button Grid.Column="3" Content="Avancado" Click="OnAdvancedPresetClick" />
+                        </Grid>
+
+                        <ListView ItemsSource="{Binding Presets}" MaxHeight="140">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Padding="0,6" ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="3*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Preset}" Foreground="{StaticResource BorealTextPrimaryBrush}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding EligibleCount}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                                        <TextBlock Grid.Column="2" Text="{Binding RiskDistribution}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource BorealCardBorderStyle}">
+                    <StackPanel Margin="24" Spacing="12">
+                        <TextBlock Text="Filtros" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220" />
+                                <ColumnDefinition Width="220" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="CategoryFilter" Grid.Column="0" SelectionChanged="OnCategoryFilterChanged" SelectedIndex="0">
+                                <ComboBoxItem Content="Todas categorias" Tag="All" />
+                                <ComboBoxItem Content="System" Tag="System" />
+                                <ComboBoxItem Content="Windows" Tag="Windows" />
+                                <ComboBoxItem Content="Drivers" Tag="Drivers" />
+                                <ComboBoxItem Content="Graphics" Tag="Graphics" />
+                                <ComboBoxItem Content="Storage" Tag="Storage" />
+                                <ComboBoxItem Content="Power" Tag="Power" />
+                                <ComboBoxItem Content="Startup" Tag="Startup" />
+                                <ComboBoxItem Content="Security" Tag="Security" />
+                                <ComboBoxItem Content="Memory" Tag="Memory" />
+                            </ComboBox>
+                            <ComboBox x:Name="RiskFilter" Grid.Column="1" SelectionChanged="OnRiskFilterChanged" SelectedIndex="0">
+                                <ComboBoxItem Content="Todos riscos" Tag="All" />
+                                <ComboBoxItem Content="Safe" Tag="Safe" />
+                                <ComboBoxItem Content="Medium" Tag="Medium" />
+                                <ComboBoxItem Content="Advanced" Tag="Advanced" />
+                                <ComboBoxItem Content="Aggressive" Tag="Aggressive" />
+                            </ComboBox>
+                            <TextBlock Grid.Column="2" Text="{Binding FilterSummary}" Style="{StaticResource BorealBodyTextBlockStyle}" VerticalAlignment="Center" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="Recomendacoes" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                <ListView ItemsSource="{Binding Recommendations}" MaxHeight="480">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource BorealCardBorderStyle}" Margin="0,0,0,12">
+                                <StackPanel Margin="18" Spacing="8">
+                                    <TextBlock Text="{Binding Title}" Foreground="{StaticResource BorealTextPrimaryBrush}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding ShortDescription}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                                    <TextBlock Text="{Binding RiskWarning}" Foreground="{StaticResource BorealWarningBrush}" FontSize="13" TextWrapping="Wrap" />
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Category}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Risk}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Evidence}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                                        <TextBlock Grid.Column="3" Text="{Binding Compatibility}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                                    </Grid>
+                                    <TextBlock Text="{Binding TechnicalReason}" Foreground="{StaticResource BorealTextSecondaryBrush}" FontSize="13" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding DetectedState}" Foreground="{StaticResource BorealTextPrimaryBrush}" FontSize="13" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding DesiredState}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                                    <TextBlock Text="{Binding CompatibilityReasons}" Style="{StaticResource BorealBodyTextBlockStyle}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding ImpactAreas}" Style="{StaticResource BorealBodyTextBlockStyle}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding SideEffects}" Style="{StaticResource BorealBodyTextBlockStyle}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding OperationalMetadata}" Style="{StaticResource BorealBodyTextBlockStyle}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding Conflicts}" Style="{StaticResource BorealBodyTextBlockStyle}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding Requires}" Style="{StaticResource BorealBodyTextBlockStyle}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding Confirmation}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+
+                <Border Style="{StaticResource BorealCardBorderStyle}">
+                    <StackPanel Margin="24" Spacing="12">
+                        <TextBlock Text="Findings tecnicos" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                        <ListView ItemsSource="{Binding Findings}" MaxHeight="300">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Padding="0,6" ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="1.2*" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="2*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding RuleId}" Foreground="{StaticResource BorealTextPrimaryBrush}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Category}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Status}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                                        <TextBlock Grid.Column="3" Text="{Binding Summary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

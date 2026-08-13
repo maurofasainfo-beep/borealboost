@@ -1,4 +1,7 @@
 using System.Diagnostics;
+using BorealBoost.Analysis.RecommendationEngine;
+using BorealBoost.Analysis.RecommendationEngine.Rules;
+using BorealBoost.Core.Analysis;
 using BorealBoost.Analysis.SystemScanner;
 using BorealBoost.Core.AgentProtocol;
 using BorealBoost.Core.Foundation;
@@ -66,6 +69,40 @@ public sealed class SystemScannerRuntimeTests
         {
             _output.WriteLine($"SlowProvider={provider.ProviderName}:{provider.Status}:{provider.Duration.TotalMilliseconds:N0}ms");
         }
+    }
+
+    [Fact]
+    public async Task Real_scanner_snapshot_flows_into_analysis_recommendations_read_only()
+    {
+        var scanner = CreateScanner();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(75));
+        var scanResult = await scanner.ScanAsync(null, timeout.Token);
+
+        Assert.True(scanResult.IsSuccess, scanResult.ErrorMessage);
+
+        var analysisResult = await CreateAnalysisEngine().AnalyzeAsync(scanResult.Value!, CancellationToken.None);
+
+        Assert.True(analysisResult.IsSuccess, analysisResult.ErrorMessage);
+        var analysis = analysisResult.Value!;
+        Assert.Equal(scanResult.Value!.Metadata.ScanId, analysis.ScanId);
+        Assert.Equal(AnalysisEngine.EngineVersion, analysis.EngineVersion);
+        Assert.Equal(AnalysisEngine.RuleCatalogVersion, analysis.RuleCatalogVersion);
+        Assert.Equal(11, analysis.Summary.RulesEvaluated);
+        Assert.Equal(analysis.Summary.RecommendationCount, analysis.Recommendations.Count);
+        Assert.All(analysis.Recommendations, recommendation => Assert.DoesNotContain("+", recommendation.ShortDescription, StringComparison.Ordinal));
+
+        _output.WriteLine($"AnalysisRulesEvaluated={analysis.Summary.RulesEvaluated}");
+        _output.WriteLine($"AnalysisHealthy={analysis.Summary.HealthyCount}");
+        _output.WriteLine($"AnalysisOpportunities={analysis.Summary.OpportunityCount}");
+        _output.WriteLine($"AnalysisWarnings={analysis.Summary.WarningCount}");
+        _output.WriteLine($"AnalysisBlocked={analysis.Summary.BlockedCount}");
+        _output.WriteLine($"AnalysisUnknown={analysis.Summary.UnknownCount}");
+        _output.WriteLine($"AnalysisRecommendations={analysis.Summary.RecommendationCount}");
+        _output.WriteLine($"AnalysisRiskSafe={RiskCount(analysis, RecommendationRiskLevel.Safe)}");
+        _output.WriteLine($"AnalysisRiskMedium={RiskCount(analysis, RecommendationRiskLevel.Medium)}");
+        _output.WriteLine($"AnalysisRiskAdvanced={RiskCount(analysis, RecommendationRiskLevel.Advanced)}");
+        _output.WriteLine($"AnalysisRiskAggressive={RiskCount(analysis, RecommendationRiskLevel.Aggressive)}");
+        _output.WriteLine($"AnalysisDurationMs={analysis.Duration.TotalMilliseconds:N0}");
     }
 
     [Fact]
@@ -138,6 +175,31 @@ public sealed class SystemScannerRuntimeTests
         ];
 
         return new SystemScanner(providers, new TestApplicationInfoProvider(), new NoopLogger<SystemScanner>());
+    }
+
+    private static AnalysisEngine CreateAnalysisEngine()
+    {
+        IAnalysisRule[] rules =
+        [
+            new PartialScanAnalysisRule(),
+            new WindowsCompatibilityAnalysisRule(),
+            new MissingDriverAnalysisRule(),
+            new ProblemDeviceAnalysisRule(),
+            new BasicDisplayAdapterAnalysisRule(),
+            new LowSystemDriveSpaceAnalysisRule(),
+            new VirtualMachineAnalysisRule(),
+            new PowerContextAnalysisRule(),
+            new StartupVolumeAnalysisRule(),
+            new SecurityCapabilitiesAnalysisRule(),
+            new MemoryVisibilityAnalysisRule()
+        ];
+
+        return new AnalysisEngine(rules, new NoopLogger<AnalysisEngine>());
+    }
+
+    private static int RiskCount(AnalysisResult result, RecommendationRiskLevel risk)
+    {
+        return result.Summary.RiskDistribution.TryGetValue(risk, out var count) ? count : 0;
     }
 
     private sealed class SynchronousProgress : IProgress<ScanProgressUpdate>

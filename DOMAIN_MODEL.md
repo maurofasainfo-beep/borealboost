@@ -1,7 +1,7 @@
 # BorealBoost - Domain Model
 
 Data: 2026-08-12
-Status: modelo conceitual com contratos implementados para Foundation e System Scanner.
+Status: modelo conceitual com contratos implementados para Foundation, System Scanner e Analysis/Recommendation Engine.
 
 ## Agregados principais
 
@@ -100,43 +100,98 @@ Regras da Fase 2:
 - Device/driver facts podem conter Device Instance ID, Hardware IDs e Compatible IDs porque sustentam o Driver Engine futuro; serial numbers, MAC, SSID, product key e machine GUID ficam fora do modelo.
 - `SystemSnapshotPrivacyPolicy` define quais campos sao publicos, internos, sensiveis, nao persistiveis ou nao reportaveis. Relatorios futuros devem usar snapshot sanitizado.
 
-### Finding
+### AnalysisResult / Finding / Recommendation
 
-Representa uma observacao tecnica detectada pelo scanner.
+Na Fase 3, `AnalysisResult` representa a interpretacao read-only de um `SystemSnapshot`.
 
-Campos:
+Campos implementados em `AnalysisResult`:
 
-- findingId;
-- category;
-- severity;
-- title;
-- evidence;
-- affectedComponent;
-- recommendationHint;
-- confidence;
-- source.
+- `AnalysisId`;
+- `ScanId`;
+- `StartedAtUtc`;
+- `CompletedAtUtc`;
+- `Duration`;
+- `EngineVersion`;
+- `RuleCatalogVersion`;
+- `RuleResults`;
+- `Findings`;
+- `Recommendations`;
+- `RecommendationPlan`;
+- `Summary`;
+- `Warnings`.
 
-### Recommendation
-
-Resultado do RecommendationEngine.
+`AnalysisSessionService` controla a execucao read-only da analise sobre o snapshot corrente.
 
 Estados:
 
-- Recommended;
-- Optional;
-- NotRecommended;
-- Incompatible.
+- Idle;
+- Running;
+- Cancelling;
+- Completed;
+- Failed;
+- Cancelled.
+
+Regras:
+
+- uma unica analise ativa por vez;
+- starts concorrentes retornam `analysis.already_running`;
+- cancelamento nao publica resultado parcial como concluido;
+- se o `SystemSnapshot` corrente mudar durante a analise, o resultado e descartado com `analysis.snapshot_changed`;
+- o ViewModel pode ser recriado por navegacao sem criar ownership paralelo da sessao.
+
+`AnalysisFinding` representa uma observacao tecnica derivada de regra.
 
 Campos:
 
-- optimizationId;
-- reason;
-- confidence;
-- expectedImpactArea;
-- riskLevel;
-- evidenceLevel;
-- blockingRules;
-- requiredConfirmations.
+- `FindingId`;
+- `RuleId`;
+- `Category`;
+- `Status`: NotApplicable, Healthy, Opportunity, Warning, Blocked ou Unknown;
+- `Title`;
+- `Summary`;
+- `TechnicalDetails`;
+- `EvidenceLevel`;
+- `Evidence`;
+- `RelatedRecommendationIds`.
+
+`Recommendation` representa sugestao estruturada de acao futura. Ela nao e uma otimizacao executavel.
+
+Campos:
+
+- `RecommendationId`;
+- `RuleId`;
+- `Title`;
+- `ShortDescription`;
+- `TechnicalReason`;
+- `Category`;
+- `RiskLevel`: Safe, Medium, Advanced ou Aggressive;
+- `EvidenceLevel`: Strong, Moderate, Experimental ou Unknown;
+- `Compatibility`;
+- `DetectedState`;
+- `DesiredState`;
+- `ExpectedImpact`: Low, Moderate, PotentiallyHigh, WorkloadDependent ou Unknown;
+- `ImpactAreas`;
+- `SideEffects`;
+- `RebootRequired`;
+- `Reversible`;
+- `PresetEligibility`;
+- `UserConfirmationRequired`;
+- `FutureOptimizationId`;
+- `Evidence`;
+- `ConflictsWith`;
+- `Requires`.
+
+Invariantes da Fase 3:
+
+- `Unknown` nao vira `Opportunity`;
+- recommendation nao contem command line, script, PowerShell ou path executavel;
+- Advanced/Aggressive exigem justificativa e confirmacao futura;
+- expected impact e qualitativo, sem prometer FPS;
+- `FutureOptimizationId` pode existir futuramente, mas nao cria operacao.
+- `RecommendationId` duplicado e falha de validacao, nao deduplicacao silenciosa;
+- evidencia Experimental nao entra automaticamente em Basico/Medio;
+- referencias `ConflictsWith`/`Requires` nao podem apontar para si mesmas ou IDs inexistentes;
+- recomendacao invalida bloqueia publicacao do plano para evitar ambiguidade futura.
 
 ### OptimizationDefinition
 

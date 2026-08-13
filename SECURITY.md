@@ -1,7 +1,7 @@
 # BorealBoost - Security
 
 Data: 2026-08-12
-Status: politica de seguranca aprovada e atualizada ate a Fase 2.
+Status: politica de seguranca aprovada e atualizada ate a Fase 3.
 
 ## Principios
 
@@ -187,6 +187,42 @@ Privacidade:
 - classificar campos de snapshot por politica explicita antes de persistir/exportar;
 - remover Device Instance ID, Hardware IDs, Compatible IDs, INF, services, processos, startup items e detalhes de adaptadores da copia de relatorio padrao;
 - nao exibir machine name por padrao no Dashboard.
+
+## Analysis + Recommendation Engine
+
+A Fase 3 e read-only e opera principalmente sobre `SystemSnapshot`.
+
+Regras:
+
+- `IAnalysisRule` nao deve consultar WMI, Registry, Services, Process, Network, Windows Update ou fontes externas diretamente;
+- regra que precisa de dado ausente deve retornar `Unknown`, `NotApplicable`, `Blocked` ou `Conditional`, nunca oportunidade automatica;
+- recommendation nao e operacao executavel;
+- recommendation nao contem command line, PowerShell, script, caminho de executavel, pacote de driver ou argumento para processo externo;
+- nenhum preset executa apply;
+- Advanced/Aggressive exigem risco explicito, justificativa, compatibilidade e confirmacao futura;
+- reducao de seguranca nunca entra silenciosamente em Basico/Medio;
+- falha de regra deve ser isolada e nao pode gerar recommendation falsa;
+- `AnalysisResult` nao deve duplicar inventarios sensiveis completos.
+
+Dados permitidos em `AnalysisResult`:
+
+- contagens;
+- status;
+- categoria;
+- risco;
+- evidencia minima;
+- razoes tecnicas redigidas.
+
+Dados que nao devem ser copiados para recomendacoes por padrao:
+
+- Device Instance ID;
+- Hardware IDs;
+- Compatible IDs;
+- INF;
+- nomes/listas completas de processos;
+- detalhes completos de services;
+- descricoes completas de adaptadores de rede;
+- machine name.
 
 ## Snapshot security
 

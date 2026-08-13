@@ -1,7 +1,7 @@
 # BorealBoost - Architecture Decision Record
 
 Data: 2026-08-12
-Status: aprovado e atualizado ate a Fase 2
+Status: aprovado e atualizado ate a Fase 3
 
 ## ADR-001 - Stack de aplicacao desktop
 
@@ -292,3 +292,30 @@ A auditoria da Fase 2 aprovou o Scanner com correcoes. Os achados de maior risco
 - Memoria instalada e memoria visivel pelo Windows sao fatos diferentes no dominio.
 - Capabilities de seguranca read-only podem ser `Known`, `Unknown`, `NotSupported` ou `Deferred`; `Deferred` nao e recomendacao.
 - Defender, Firewall e BitLocker permanecem diferidos na Fase 2.
+
+## ADR-015 - Analysis + Recommendation Engine read-only
+
+### Decisao
+
+Implementar a Fase 3 como engine de analise puro, baseado no `SystemSnapshot`, com regras modulares code-first e recomendacoes estruturadas sem qualquer capacidade de apply.
+
+### Justificativa
+
+Fases futuras precisam de recomendacoes tecnicamente defensaveis antes de existir Optimization Engine operacional. Misturar analise com novos scanners escondidos, comandos ou tweaks anteciparia riscos e quebraria a separacao aprovada:
+
+- Scanner = fatos;
+- Analysis = interpretacao;
+- Recommendation = sugestao;
+- Optimization = execucao futura;
+- Rollback = recuperacao futura.
+
+### Implicacoes
+
+- `BorealBoost.Core` contem contratos de analysis e recommendation sem dependencias Windows/UI.
+- `BorealBoost.Analysis` executa regras ordenadas por `RuleId` e nao referencia `BorealBoost.System`.
+- `AnalysisResult` registra `EngineVersion` e `RuleCatalogVersion`.
+- `Unknown` nao gera oportunidade automatica.
+- Recomendacoes Advanced/Aggressive exigem risco, justificativa e confirmacao futura.
+- Presets Basico, Medio, Avancado e Custom sao apenas preview.
+- Nenhuma recomendacao executa Registry, Services, Power, DNS, Drivers, Windows Update, Benchmark, Boreal Score operacional, Optimization ou Rollback.
+- Falha isolada de uma regra vira warning tecnico e nao recomendacao falsa.

@@ -13,7 +13,7 @@ public sealed class ArchitectureDependencyTests
     }
 
     [Fact]
-    public void App_references_only_allowed_scanner_dependencies_in_phase_2()
+    public void App_references_only_allowed_foundation_scanner_and_analysis_dependencies_in_phase_3()
     {
         var project = LoadProject("src", "BorealBoost.App", "BorealBoost.App.csproj");
         var refs = ProjectReferences(project).ToArray();

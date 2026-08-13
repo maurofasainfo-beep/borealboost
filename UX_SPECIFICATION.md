@@ -1,7 +1,7 @@
 # BorealBoost - UX Specification
 
 Data: 2026-08-12
-Status: especificacao de experiencia, sem implementacao.
+Status: especificacao de experiencia atualizada ate a Fase 3.
 
 ## Direcao visual
 
@@ -70,14 +70,14 @@ Antes do scan:
 
 Apos scan:
 
-- Boreal Score;
-- subscores;
-- perfil recomendado;
-- oportunidades encontradas;
+- Boreal Score quando houver algoritmo calibrado em fase futura;
+- subscores quando houver algoritmo calibrado;
+- perfil recomendado quando presets operacionais existirem;
+- oportunidades encontradas via AnalysisResult;
 - cards CPU, GPU, RAM, Storage, Windows, Drivers;
 - alertas principais.
 
-Nao exibir numero inventado. Se dados insuficientes, exibir estado parcial.
+Nao exibir numero inventado. Se dados insuficientes, exibir estado parcial. Na Fase 3, Dashboard pode continuar sem Boreal Score e a pagina `Analise` e a superficie principal para recomendacoes.
 
 ## Scanner
 
@@ -126,6 +126,19 @@ Estados:
 - dados parciais;
 - erro de permissao;
 - reboot pendente.
+
+Status da Fase 3:
+
+- pagina `Analise` funcional;
+- consome o ultimo `SystemSnapshot` real em memoria;
+- executa `AnalysisEngine` read-only;
+- mostra resumo de regras, oportunidades, avisos, bloqueios, unknown e recomendacoes;
+- mostra preview de presets Basico, Medio, Avancado e Custom sem apply;
+- filtros por preset, categoria e risco;
+- cards de recomendacao com categoria, risco, evidencia, impacto esperado, compatibilidade, motivo tecnico, estado detectado e estado desejado;
+- recomendacoes Advanced exibem aviso visual de cautela;
+- nenhum botao executa otimizacao;
+- Boreal Score, FPS e benchmark permanecem ausentes.
 
 ## Otimizacao
 

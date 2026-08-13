@@ -4,9 +4,9 @@ BorealBoost e uma aplicacao desktop Windows para diagnostico, otimizacao planeja
 
 ## Estado Atual
 
-Fase atual: **Fase 2 - System Scanner**.
+Fase atual: **Fase 3 - Analysis + Recommendation Engine**.
 
-As bases da Fase 1 foram preservadas e a Fase 2 adiciona scanner somente leitura:
+As bases da Fase 1 foram preservadas, a Fase 2 adicionou scanner somente leitura e a Fase 3 adiciona analise/recomendacoes read-only:
 
 - solution .NET;
 - projetos principais;
@@ -17,6 +17,9 @@ As bases da Fase 1 foram preservadas e a Fase 2 adiciona scanner somente leitura
 - contratos fundamentais de dominio;
 - foundation do `BorealBoost.Agent` com IPC local tipado por named pipe;
 - scanner modular de OS, CPU, GPU, RAM, storage, motherboard/firmware, displays, network, devices, drivers, power, services, processes e startup;
+- Analysis Engine modular baseado em `SystemSnapshot`;
+- Recommendation model com risk, evidence, compatibility, expected impact e preset preview;
+- pagina `Analise` com recomendações estruturadas sem apply;
 - testes unitarios, integracao e system tests.
 
 Ainda nao existem otimizacoes reais. O projeto nao altera Registry, Services, Power, DNS, Drivers, Windows Update, Defender, Firewall, VBS ou Memory Integrity.
@@ -91,6 +94,21 @@ Fontes usadas:
 
 O scanner nao usa PowerShell/cmd, nao executa benchmark, nao busca drivers na internet e nao altera o sistema.
 
+## Analysis + Recommendation Engine
+
+A pagina `Analise` interpreta o ultimo snapshot real do Scanner e mostra findings, oportunidades, avisos, bloqueios, unknowns e recomendacoes estruturadas.
+
+Esta fase:
+
+- nao escreve Registry;
+- nao altera Services, Power, DNS ou Network;
+- nao instala ou atualiza drivers;
+- nao executa comandos;
+- nao aplica otimizacoes;
+- nao executa rollback;
+- nao calcula Boreal Score operacional;
+- nao promete ganhos de FPS.
+
 ## Agent
 
 O `BorealBoost.Agent` nesta fase:
@@ -117,4 +135,4 @@ Paths futuros para configuracao, sessoes, snapshots e relatorios ja estao centra
 
 ## Aviso de Escopo
 
-Analysis/Recommendation pertence a Fase 3. Optimization Engine operacional pertence a Fase 4. Safety/Rollback operacional pertence a Fase 5. Tweaks reais pertencem a Fase 6 ou posterior.
+Optimization Engine + Safety + Snapshot + Rollback pertencem a Fase 4 consolidada. Catalogo de tweaks reais pertence a Fase 5. Drivers, benchmark, resultados e reporting pertencem a Fase 6. Installer/hardening pertencem a Fase 7.

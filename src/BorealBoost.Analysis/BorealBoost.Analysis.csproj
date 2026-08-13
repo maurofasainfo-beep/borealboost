@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Description>Scanner orchestration and future analysis boundary. Recommendation Engine is not operational.</Description>
+    <Description>Scanner orchestration plus read-only Analysis and Recommendation Engine.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\BorealBoost.Core\BorealBoost.Core.csproj" />

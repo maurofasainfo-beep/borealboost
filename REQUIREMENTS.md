@@ -1,7 +1,7 @@
 # BorealBoost - Requirements
 
 Data: 2026-08-12
-Status: Fase 0. Este documento consolida requisitos; nao representa implementacao.
+Status: atualizado ate a Fase 3. Este documento consolida requisitos e estado atual.
 
 ## Objetivo do produto
 
@@ -48,11 +48,12 @@ Fora da V1:
 | Produto desktop | Aplicacao Windows comercial premium | Nao implementado |
 | Stack | Escolha documentada de tecnologia | Documentado nesta fase |
 | Dashboard | Boreal Score, resumo da maquina, CTA de analise | Nao implementado |
-| Scanner | OS, hardware, storage, network, devices, drivers, displays, power, services, processes, startup e capabilities | Implementado na Fase 2 como inventario read-only; analise/recomendacao permanecem futuras |
+| Scanner | OS, hardware, storage, network, devices, drivers, displays, power, services, processes, startup e capabilities | Implementado na Fase 2 como inventario read-only |
 | Drivers | Diagnosticar ausentes, erro, genericos, versao e IDs | Nao implementado |
 | Otimizacao | Catalogo declarativo com detect/apply/verify/undo | Nao implementado |
-| Presets | Safe Boost, Performance, Extreme, Personalizado | Nao implementado |
-| Compatibilidade | Regras por Windows 10/11, build, hardware e notebook/desktop | Nao implementado |
+| Analysis/Recommendation | Transformar `SystemSnapshot` em findings, oportunidades, warnings e recomendacoes estruturadas | Implementado na Fase 3 como engine read-only, sem apply |
+| Presets | Safe Boost, Performance, Extreme, Personalizado | Parcial: preview Basico/Medio/Avancado/Custom, sem aplicacao |
+| Compatibilidade | Regras por Windows 10/11, build, hardware e notebook/desktop | Parcial: compatibilidade de recomendacao na Fase 3; compatibility operacional de otimizacoes ainda futura |
 | Restore Point | Criar antes de operacoes relevantes | Nao implementado |
 | Snapshot | Capturar valores anteriores por item | Nao implementado |
 | Rollback | Reverter item ou sessao e verificar | Nao implementado |
@@ -80,17 +81,16 @@ Fora da V1:
 RiskLevel:
 
 - `Safe`: baixo risco, conserva funcionalidade.
-- `Advanced`: altera funcionalidade secundaria ou comportamento de conveniencia.
+- `Medium`: alteracao futura mais relevante, normalmente reversivel, exige revisao.
+- `Advanced`: pode alterar funcionalidade secundaria, compatibilidade ou comportamento.
 - `Aggressive`: prioriza performance sobre conveniencia, exige confirmacao forte.
-- `Experimental`: evidencia limitada, nunca automatico em Basico/Medio.
 
 EvidenceLevel:
 
-- `A`: documentacao oficial ou comportamento comprovado.
-- `B`: forte evidencia tecnica.
-- `C`: resultado dependente de hardware/configuracao.
-- `D`: experimental.
-- `X`: nao usar.
+- `Strong`: fato objetivo e justificativa tecnica direta.
+- `Moderate`: beneficio plausivel, dependente de contexto.
+- `Experimental`: evidencia limitada.
+- `Unknown`: nao usar para recomendacao automatica.
 
 ## Requisitos de cada otimizacao
 
@@ -127,13 +127,14 @@ Se nao puder responder, a otimizacao nao entra em preset automatico.
 | Arquitetura modular | Documentado, nao implementado |
 | Stack C#/.NET/Windows nativo | Decidido, nao implementado |
 | UX premium | Especificado, nao implementado |
-| Scanner | Implementado parcialmente na Fase 2 como `SystemSnapshot` read-only |
+| Scanner | Implementado na Fase 2 como `SystemSnapshot` read-only |
 | Driver Engine | Projetado, nao implementado |
 | Optimization Engine | Projetado, nao implementado |
-| Compatibility Engine | Projetado, nao implementado |
+| Analysis/Recommendation Engine | Implementado na Fase 3 como read-only sobre `SystemSnapshot` |
+| Compatibility Engine | Parcial em recomendacoes da Fase 3; operacional de otimizacoes ainda futuro |
 | Rollback Engine | Projetado, nao implementado |
-| Boreal Score | Metodologia inicial documentada, precisa calibracao |
-| Testes | Roadmap definido, nao implementado |
+| Boreal Score | Metodologia inicial documentada, precisa calibracao; nao operacional |
+| Testes | Foundation, Scanner e Analysis possuem testes locais; matriz completa de VM ainda pendente |
 | Licencas | Pesquisa inicial feita, sem incorporacao de terceiros |
 
 ## Pendencias

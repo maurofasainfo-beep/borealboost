@@ -1,9 +1,12 @@
 using System.Diagnostics;
+using BorealBoost.Analysis.RecommendationEngine;
+using BorealBoost.Analysis.RecommendationEngine.Rules;
 using BorealBoost.Analysis.SystemScanner;
 using BorealBoost.App.Agent;
 using BorealBoost.App.Navigation;
 using BorealBoost.App.Pages;
 using BorealBoost.App.ViewModels;
+using BorealBoost.Core.Analysis;
 using BorealBoost.Core.Foundation;
 using BorealBoost.Core.Scanner;
 using BorealBoost.Infrastructure.DependencyInjection;
@@ -70,6 +73,20 @@ public partial class App : Application
                 services.AddSingleton<ISystemSnapshotStore, InMemorySystemSnapshotStore>();
                 services.AddSingleton<ISystemScanner, SystemScanner>();
                 services.AddSingleton<ISystemScanSessionService, SystemScanSessionService>();
+                services.AddSingleton<IAnalysisResultStore, InMemoryAnalysisResultStore>();
+                services.AddSingleton<IAnalysisEngine, AnalysisEngine>();
+                services.AddSingleton<IAnalysisSessionService, AnalysisSessionService>();
+                services.AddSingleton<IAnalysisRule, PartialScanAnalysisRule>();
+                services.AddSingleton<IAnalysisRule, WindowsCompatibilityAnalysisRule>();
+                services.AddSingleton<IAnalysisRule, MissingDriverAnalysisRule>();
+                services.AddSingleton<IAnalysisRule, ProblemDeviceAnalysisRule>();
+                services.AddSingleton<IAnalysisRule, BasicDisplayAdapterAnalysisRule>();
+                services.AddSingleton<IAnalysisRule, LowSystemDriveSpaceAnalysisRule>();
+                services.AddSingleton<IAnalysisRule, VirtualMachineAnalysisRule>();
+                services.AddSingleton<IAnalysisRule, PowerContextAnalysisRule>();
+                services.AddSingleton<IAnalysisRule, StartupVolumeAnalysisRule>();
+                services.AddSingleton<IAnalysisRule, SecurityCapabilitiesAnalysisRule>();
+                services.AddSingleton<IAnalysisRule, MemoryVisibilityAnalysisRule>();
                 services.AddSingleton<WmiQueryService>();
                 services.AddSingleton<ReadOnlyRegistryReader>();
                 services.AddSingleton<ISystemScanProvider, OperatingSystemScanProvider>();
@@ -91,14 +108,17 @@ public partial class App : Application
                 services.AddSingleton<INavigationService>(provider => new NavigationService(
                     () => provider.GetRequiredService<DashboardPage>(),
                     () => provider.GetRequiredService<ScannerPage>(),
+                    () => provider.GetRequiredService<AnalysisPage>(),
                     () => provider.GetRequiredService<PlaceholderPage>()));
                 services.AddSingleton<MainViewModel>();
                 services.AddTransient<DashboardViewModel>();
                 services.AddTransient<ScannerViewModel>();
+                services.AddSingleton<AnalysisViewModel>();
                 services.AddTransient<PlaceholderViewModel>();
                 services.AddTransient<MainWindow>();
                 services.AddTransient<DashboardPage>();
                 services.AddTransient<ScannerPage>();
+                services.AddTransient<AnalysisPage>();
                 services.AddTransient<PlaceholderPage>();
             });
     }

@@ -1,11 +1,11 @@
 # BorealBoost - System Scanner
 
 Data: 2026-08-12
-Status: Fase 2 implementada e corrigida como scanner somente leitura.
+Status: Fase 2 implementada e corrigida como scanner somente leitura; consumido pela Fase 3 Analysis.
 
 ## Objetivo
 
-O System Scanner produz um retrato tecnico normalizado do computador atual. Ele coleta fatos para fases futuras, mas nao interpreta esses fatos como recomendacoes e nao executa otimizacoes.
+O System Scanner produz um retrato tecnico normalizado do computador atual. Ele coleta fatos, mas nao interpreta esses fatos como recomendacoes e nao executa otimizacoes. A partir da Fase 3, `AnalysisEngine` consome o snapshot para gerar recomendacoes read-only.
 
 Pipeline:
 
@@ -157,6 +157,12 @@ Dois scans simultaneos sao rejeitados com `scanner.already_running`, inclusive q
 - Scanner nao consulta fontes externas de drivers.
 - Scanner nao altera Registry, Services, Power, DNS, Drivers, Windows Update, Defender, Firewall, AppX, features ou firmware.
 - O Agent nao e usado para scanning comum nesta fase.
+
+## Uso pelo Analysis Engine
+
+O `SystemSnapshot` e a unica entrada esperada para regras de analise da Fase 3. Regras de analysis nao devem criar novos scanners escondidos nem consultar WMI/Registry/Process/Network diretamente.
+
+Unknown, Deferred, NotSupported e provider failures devem ser preservados como incerteza ou bloqueio, nunca como oportunidade automatica.
 
 ## UI
 

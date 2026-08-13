@@ -1,7 +1,7 @@
 # BorealBoost - Architecture
 
 Data: 2026-08-12
-Status: arquitetura aprovada; Fase 1 Foundation e Fase 2 System Scanner implementadas.
+Status: arquitetura aprovada; Fases 1, 2 e 3 implementadas.
 
 ## Visao geral
 
@@ -126,6 +126,58 @@ Proibido no scanner:
 - alterar servicos, power plan, DNS, Windows Update, AppX, Defender, Firewall, features ou firmware;
 - calcular Boreal Score;
 - gerar recomendacoes.
+
+## Analysis + Recommendation Engine - Fase 3
+
+A Fase 3 interpreta o `SystemSnapshot` produzido pelo Scanner e retorna `AnalysisResult`. Ela permanece read-only e nao consulta Windows diretamente.
+
+Distribuicao por camadas:
+
+- `Core`: contratos `IAnalysisEngine`, `IAnalysisRule`, `IAnalysisSessionService`, `IAnalysisResultStore`, `AnalysisResult`, `AnalysisFinding`, `Recommendation`, `RecommendationPlan`, enums de categoria, status, risco, evidencia, impacto, compatibilidade e estado de sessao.
+- `Analysis`: `AnalysisEngine`, `AnalysisSessionService`, `InMemoryAnalysisResultStore`, `RecommendationModelValidator` e regras modulares code-first em `RecommendationEngine/Rules`.
+- `App`: pagina `Analise`, filtros, preset preview e cards de recomendacao somente leitura.
+- `System`: nao e referenciado por regras de analise; continua apenas fornecendo facts via Scanner.
+
+Pipeline:
+
+1. Scanner coleta fatos e atualiza `ISystemSnapshotStore`.
+2. `AnalysisSessionService` singleton recebe o snapshot existente e rejeita starts concorrentes.
+3. Regras independentes avaliam o snapshot em ordem deterministica por `RuleId`.
+4. Cada regra produz `Healthy`, `Opportunity`, `Warning`, `Blocked`, `Unknown` ou `NotApplicable`.
+5. `RecommendationModelValidator` valida IDs, duplicidade, presets, compatibilidade, conflitos e requisitos.
+6. Duplicidade de `RecommendationId` ou invariante invalida bloqueia a analise com falha observavel.
+7. `RecommendationPlan` prepara preview de Basico, Medio, Avancado e Custom.
+8. UI apresenta resultados, sem botao funcional de apply.
+
+Contratos de versionamento:
+
+- `EngineVersion = 3.0.0`;
+- `RuleCatalogVersion = 3.0.0-code-first`;
+- `AnalysisResult` registra `AnalysisId`, `ScanId`, inicio/fim UTC e duracao.
+
+Regras iniciais:
+
+- partial scan guard;
+- compatibilidade Windows;
+- dispositivo sem driver;
+- dispositivo com problema/desabilitado;
+- Microsoft Basic Display Adapter/GPU generica;
+- pouco espaco no volume do sistema;
+- maquina virtual;
+- contexto portatil/energia;
+- volume alto de startup;
+- guardrail de Secure Boot;
+- memoria instalada versus memoria visivel.
+
+Regras de seguranca:
+
+- `Unknown` nunca vira `Opportunity`;
+- nenhuma regra consulta WMI, Registry, processos, rede ou servicos por conta propria;
+- recomendacoes Advanced exigem risco, justificativa e confirmacao futura;
+- recomendacoes nao prometem FPS, percentual de desempenho ou benchmark;
+- nenhuma recomendacao executa Optimization, Rollback, driver install/update ou comando;
+- GPU virtual/generica em VM nao gera recomendacao de driver grafico fisico por si so;
+- a regra de startup e observacional/experimental quando baseada apenas em contagem agregada.
 
 ## Contrato arquitetural do BorealBoost.Agent
 

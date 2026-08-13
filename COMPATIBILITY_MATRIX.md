@@ -80,6 +80,25 @@ O System Scanner implementa classificacao funcional inicial:
 
 Essa classificacao nao afirma estado de suporte Microsoft. Ela informa se o BorealBoost reconhece o sistema como alvo funcional para diagnostico e fases futuras.
 
+## Compatibility em Recommendations - Fase 3
+
+A Fase 3 adiciona compatibilidade no nivel de recomendacao:
+
+- `Compatible`;
+- `Conditional`;
+- `Incompatible`;
+- `Unknown`.
+
+Essa compatibilidade e informativa e read-only. Ela nao autoriza apply. Compatibility operacional de otimizacoes, Detection, ExecutionPlan e revalidacao pelo Agent pertencem a Fase 4 consolidada e ao Catalogo da Fase 5.
+
+Regras:
+
+- Windows 10 `LegacySupported` pode gerar aviso, nao remocao de suporte;
+- Windows `Unsupported` bloqueia planejamento automatico futuro;
+- VM torna recomendacoes dependentes de hardware fisico condicionais ou bloqueadas;
+- notebook/portatil torna energia agressiva Advanced e condicionada;
+- Unknown nao e tratado como Compatible.
+
 ## Windows 11
 
 Versoes atuais observadas em 2026-08-12 na pagina oficial Microsoft:
