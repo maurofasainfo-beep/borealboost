@@ -6,6 +6,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\BorealBoost.Core\BorealBoost.Core.csproj" />
+    <ProjectReference Include="..\..\src\BorealBoost.Optimization\BorealBoost.Optimization.csproj" />
+    <ProjectReference Include="..\..\src\BorealBoost.Restore\BorealBoost.Restore.csproj" />
     <ProjectReference Include="..\..\src\BorealBoost.System\BorealBoost.System.csproj" />
   </ItemGroup>
   <ItemGroup>

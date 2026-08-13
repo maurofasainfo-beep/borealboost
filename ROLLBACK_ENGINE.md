@@ -1,7 +1,7 @@
 # BorealBoost - Rollback Engine
 
-Data: 2026-08-12
-Status: arquitetura conceitual.
+Data: 2026-08-13
+Status: arquitetura implementada e revalidada na Fase 4 para prova controlada; restore point real e rollback de catalogo amplo ficam para fases futuras.
 
 ## Objetivo
 
@@ -19,6 +19,32 @@ Restore point sozinho nao basta.
 6. Undo por item.
 7. Rollback por sessao.
 8. Verify apos rollback.
+
+## Implementacao Fase 4
+
+A Fase 4 implementa rollback operacional apenas para a prova controlada `BorealIntegrationRegistryValue`.
+
+Implementado:
+
+- `OperationSnapshot` separado de `SystemSnapshot`;
+- snapshot antes de mutacao;
+- journal duravel antes/depois de snapshot, apply, verify e rollback;
+- `RollbackEngine` foundation;
+- rollback de sessao em ordem inversa das operacoes aplicadas;
+- verificacao do estado original apos rollback;
+- bloqueio contra sobrescrever mudanca externa no recurso de prova;
+- recovery foundation para sessoes incompletas;
+- hash por `OperationSnapshotItem`;
+- rejeicao de snapshot adulterado, de outra sessao ou com schema incompativel;
+- preservacao exata de existencia, `RegistryValueKind`, valor bruto e `RegistryView` para os tipos Registry suportados;
+- recovery observavel para artefatos invalidos ou `.tmp` residual.
+
+Nao implementado na Fase 4:
+
+- criacao real de restore point;
+- rollback de Services, Power, DNS, AppX, drivers ou features;
+- rollback automatico sem snapshot confiavel;
+- UI de rollback destrutivo por item/sessao.
 
 ## Snapshot
 
@@ -44,11 +70,24 @@ SnapshotItem deve registrar:
 
 Snapshot e obrigatorio para operacoes `reversibility = Full` e para qualquer operacao cujo rollback dependa de valor anterior. Se snapshot obrigatorio falhar, a operacao nao executa.
 
+Na operacao controlada de Registry da Fase 4, o snapshot preserva:
+
+- existencia previa do valor;
+- `RegistryValueKind`;
+- valor bruto original;
+- `RegistryView`;
+- `SessionId`, `PlanId`, `OperationId` e identidade do recurso;
+- hash local do item.
+
+Tipos suportados na prova controlada: `String`, `ExpandString`, `DWord`, `QWord`, `MultiString` e `Binary`. `REG_EXPAND_SZ` e lido com `DoNotExpandEnvironmentNames`, para que rollback grave novamente `REG_EXPAND_SZ` com o conteudo bruto original. Tipo nao suportado e rejeitado antes de `Apply` para operacao reversivel; nao ha conversao silenciosa para string generica.
+
 ## Restore Point
 
 Nome proposto:
 
 `BorealBoost - Pre Optimization - YYYY-MM-DD HH-mm`
+
+Na Fase 4, restore point e apenas policy modelada. Para a operacao controlada HKCU, `RestorePointRequirement = NotRequired`. Se uma definicao futura declarar `Required`, a Fase 4 retorna `Unavailable` e bloqueia continuidade. Criacao real de restore point deve ser validada separadamente em Windows 10/11 antes de uso operacional.
 
 Regras:
 
@@ -137,7 +176,8 @@ Regras:
 - sessao incompleta nunca aparece como concluida;
 - journal e snapshots sao append-only para fins de auditoria;
 - recovery deve revalidar catalogo, ExecutionPlan e estado atual antes de sugerir retomar ou reverter;
-- se houver reboot pendente, o verify pos-reboot vem antes de qualquer novo apply.
+- se houver reboot pendente, o verify pos-reboot vem antes de qualquer novo apply;
+- artefato corrompido, hash invalido, schema desconhecido ou `.tmp` residual deve aparecer como `ManualRecovery`, nunca como inexistente.
 
 Cenarios:
 

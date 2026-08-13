@@ -8,10 +8,17 @@ using BorealBoost.App.Pages;
 using BorealBoost.App.ViewModels;
 using BorealBoost.Core.Analysis;
 using BorealBoost.Core.Foundation;
+using BorealBoost.Core.Optimization;
 using BorealBoost.Core.Scanner;
 using BorealBoost.Infrastructure.DependencyInjection;
 using BorealBoost.Infrastructure.Logging;
 using BorealBoost.Infrastructure.Paths;
+using BorealBoost.Infrastructure.Persistence;
+using BorealBoost.Optimization.Catalog;
+using BorealBoost.Optimization.Execution;
+using BorealBoost.Optimization.Handlers;
+using BorealBoost.Optimization.Planning;
+using BorealBoost.Restore;
 using BorealBoost.System;
 using BorealBoost.System.Registry;
 using BorealBoost.System.Scanner;
@@ -69,7 +76,9 @@ public partial class App : Application
                 services.AddBorealBoostInfrastructure(context.Configuration);
                 services.AddSingleton<IAdminStatusProvider, WindowsAdminStatusProvider>();
                 services.AddSingleton<IBasicSystemInfoProvider, BasicSystemInfoProvider>();
-                services.AddSingleton<IAgentBootstrapService, AgentBootstrapService>();
+                services.AddSingleton<AgentBootstrapService>();
+                services.AddSingleton<IAgentBootstrapService>(provider => provider.GetRequiredService<AgentBootstrapService>());
+                services.AddSingleton<IAgentOperationIpcClient>(provider => provider.GetRequiredService<AgentBootstrapService>());
                 services.AddSingleton<ISystemSnapshotStore, InMemorySystemSnapshotStore>();
                 services.AddSingleton<ISystemScanner, SystemScanner>();
                 services.AddSingleton<ISystemScanSessionService, SystemScanSessionService>();
@@ -87,6 +96,20 @@ public partial class App : Application
                 services.AddSingleton<IAnalysisRule, StartupVolumeAnalysisRule>();
                 services.AddSingleton<IAnalysisRule, SecurityCapabilitiesAnalysisRule>();
                 services.AddSingleton<IAnalysisRule, MemoryVisibilityAnalysisRule>();
+                services.AddSingleton<IOptimizationCatalog, BuiltInOptimizationCatalog>();
+                services.AddSingleton<IOptimizationDefinitionValidator, OptimizationDefinitionValidator>();
+                services.AddSingleton<IOperationHandler, AgentOperationHandler>();
+                services.AddSingleton<IOperationHandlerRegistry, OperationHandlerRegistry>();
+                services.AddSingleton<IExecutionPlanner, ExecutionPlanner>();
+                services.AddSingleton<IExecutionPlanValidator, ExecutionPlanValidator>();
+                services.AddSingleton<IDryRunService, DryRunService>();
+                services.AddSingleton<IPreflightService, PreflightService>();
+                services.AddSingleton<IRestorePointService, RestorePointService>();
+                services.AddSingleton<IOptimizationSessionStore>(_ => new FileOptimizationSessionStore(paths.SessionsDirectory));
+                services.AddSingleton<IOptimizationSessionLock, CrossProcessOptimizationSessionLock>();
+                services.AddSingleton<IOptimizationSessionService, OptimizationSessionService>();
+                services.AddSingleton<IRecoveryService, RecoveryService>();
+                services.AddSingleton<IRollbackEngine, RollbackEngine>();
                 services.AddSingleton<WmiQueryService>();
                 services.AddSingleton<ReadOnlyRegistryReader>();
                 services.AddSingleton<ISystemScanProvider, OperatingSystemScanProvider>();
@@ -109,16 +132,22 @@ public partial class App : Application
                     () => provider.GetRequiredService<DashboardPage>(),
                     () => provider.GetRequiredService<ScannerPage>(),
                     () => provider.GetRequiredService<AnalysisPage>(),
+                    () => provider.GetRequiredService<OptimizationPage>(),
+                    () => provider.GetRequiredService<RestorePage>(),
                     () => provider.GetRequiredService<PlaceholderPage>()));
                 services.AddSingleton<MainViewModel>();
                 services.AddTransient<DashboardViewModel>();
                 services.AddTransient<ScannerViewModel>();
                 services.AddSingleton<AnalysisViewModel>();
+                services.AddSingleton<OptimizationViewModel>();
+                services.AddSingleton<RestoreViewModel>();
                 services.AddTransient<PlaceholderViewModel>();
                 services.AddTransient<MainWindow>();
                 services.AddTransient<DashboardPage>();
                 services.AddTransient<ScannerPage>();
                 services.AddTransient<AnalysisPage>();
+                services.AddTransient<OptimizationPage>();
+                services.AddTransient<RestorePage>();
                 services.AddTransient<PlaceholderPage>();
             });
     }

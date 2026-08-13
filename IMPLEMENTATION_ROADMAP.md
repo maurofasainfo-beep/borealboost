@@ -1,7 +1,7 @@
 # BorealBoost - Implementation Roadmap
 
 Data: 2026-08-13
-Status: roadmap consolidado a partir da Fase 3.
+Status: roadmap consolidado a partir da Fase 4.
 
 ## Principios de Ordem
 
@@ -88,7 +88,7 @@ Limite:
 
 ## Fase 3 - Analysis + Recommendation Engine
 
-Status: implementada e corrigida apos auditoria final, pendente apenas de validacoes reais listadas nos relatorios.
+Status: aprovado.
 
 Objetivo:
 
@@ -118,26 +118,39 @@ Limite:
 
 ## Fase 4 - Optimization Engine + Safety + Snapshot + Rollback
 
+Status: aprovada apos revalidacao corretiva.
+
 Objetivo:
 
 - criar o nucleo operacional seguro antes de qualquer lote real de tweaks.
 
-Entregas planejadas:
+Entregas:
 
-- Trusted Optimization Catalog com schema, hash, assinatura, publisher e protecao contra downgrade;
-- Compatibility/Detection/ExecutionPlan para otimizacoes;
-- validacao de ExecutionPlan pelo Agent;
-- snapshot por operacao;
-- restore point quando aplicavel;
-- transaction journal;
-- verify;
-- rollback por item/sessao;
-- recovery de sessao incompleta.
+- `OptimizationDefinition` e `OperationSpec` tipados;
+- catalogo built-in minimo de prova, sem catalogo amplo de tweaks;
+- `ExecutionPlanner` e `ExecutionPlanValidator`;
+- Dry Run e Preflight;
+- `OptimizationSession` com state machine;
+- persistencia atomica de sessao com schema e hash de integridade;
+- journal transacional;
+- `OperationSnapshot` antes de mutacao;
+- restore point policy modelada como `NotRequired`/`Unavailable`, sem criacao real automatica;
+- verification obrigatoria;
+- rollback por snapshot;
+- recovery foundation para sessoes incompletas;
+- recovery de artefatos corrompidos/incompativeis como acao manual;
+- bloqueio cross-process de sessoes concorrentes;
+- Agent com mensagens IPC tipadas para operacoes allowlisted;
+- Agent validando OperationSpec canonica contra catalogo built-in confiavel;
+- `PlanHash` efetivo e snapshot hash por item;
+- prova real controlada em `HKCU\Software\BorealBoost\IntegrationTest`.
 
 Limite:
 
-- pode usar operacoes simuladas/test fixtures para validar safety;
-- nao liberar tweaks reais ate o contrato transacional estar validado.
+- 0 otimizacoes reais de performance;
+- 0 alteracoes criticas do Windows;
+- 0 execucao arbitraria no Agent;
+- Fase 5 nao iniciada.
 
 ## Fase 5 - Optimization Catalog - Safe + Medium + Advanced/Aggressive
 

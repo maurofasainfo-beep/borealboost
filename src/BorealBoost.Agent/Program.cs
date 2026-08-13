@@ -1,7 +1,11 @@
 using BorealBoost.Agent;
+using BorealBoost.Core.Optimization;
 using BorealBoost.Infrastructure.DependencyInjection;
 using BorealBoost.Infrastructure.Logging;
 using BorealBoost.Infrastructure.Paths;
+using BorealBoost.Optimization.Handlers;
+using BorealBoost.Optimization.Catalog;
+using BorealBoost.System.Operations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -27,6 +31,9 @@ var host = Host.CreateDefaultBuilder(args)
     {
         services.AddBorealBoostInfrastructure(context.Configuration);
         services.AddSingleton(parseResult.Value);
+        services.AddSingleton<IOptimizationCatalog, BuiltInOptimizationCatalog>();
+        services.AddSingleton<IOperationHandler, BorealIntegrationRegistryOperationHandler>();
+        services.AddSingleton<IOperationHandlerRegistry, OperationHandlerRegistry>();
         services.AddSingleton<AgentIpcSession>();
         services.AddHostedService<AgentFoundationService>();
     })

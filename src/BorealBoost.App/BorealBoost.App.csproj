@@ -15,6 +15,8 @@
     <ProjectReference Include="..\BorealBoost.Analysis\BorealBoost.Analysis.csproj" />
     <ProjectReference Include="..\BorealBoost.Core\BorealBoost.Core.csproj" />
     <ProjectReference Include="..\BorealBoost.Infrastructure\BorealBoost.Infrastructure.csproj" />
+    <ProjectReference Include="..\BorealBoost.Optimization\BorealBoost.Optimization.csproj" />
+    <ProjectReference Include="..\BorealBoost.Restore\BorealBoost.Restore.csproj" />
     <ProjectReference Include="..\BorealBoost.System\BorealBoost.System.csproj" />
   </ItemGroup>
   <ItemGroup>

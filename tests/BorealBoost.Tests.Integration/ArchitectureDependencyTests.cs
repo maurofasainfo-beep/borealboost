@@ -13,7 +13,7 @@ public sealed class ArchitectureDependencyTests
     }
 
     [Fact]
-    public void App_references_only_allowed_foundation_scanner_and_analysis_dependencies_in_phase_3()
+    public void App_references_only_allowed_dependencies_in_phase_4()
     {
         var project = LoadProject("src", "BorealBoost.App", "BorealBoost.App.csproj");
         var refs = ProjectReferences(project).ToArray();
@@ -21,10 +21,27 @@ public sealed class ArchitectureDependencyTests
         Assert.Contains(@"..\BorealBoost.Analysis\BorealBoost.Analysis.csproj", refs);
         Assert.Contains(@"..\BorealBoost.Core\BorealBoost.Core.csproj", refs);
         Assert.Contains(@"..\BorealBoost.Infrastructure\BorealBoost.Infrastructure.csproj", refs);
+        Assert.Contains(@"..\BorealBoost.Optimization\BorealBoost.Optimization.csproj", refs);
+        Assert.Contains(@"..\BorealBoost.Restore\BorealBoost.Restore.csproj", refs);
         Assert.Contains(@"..\BorealBoost.System\BorealBoost.System.csproj", refs);
-        Assert.DoesNotContain(refs, item => item.Contains("Optimization", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(refs, item => item.Contains("Drivers", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(refs, item => item.Contains("Restore", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(refs, item => item.Contains("Benchmark", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(refs, item => item.Contains("Reporting", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Agent_references_only_approved_phase_4_execution_dependencies()
+    {
+        var project = LoadProject("src", "BorealBoost.Agent", "BorealBoost.Agent.csproj");
+        var refs = ProjectReferences(project).ToArray();
+
+        Assert.Contains(@"..\BorealBoost.Core\BorealBoost.Core.csproj", refs);
+        Assert.Contains(@"..\BorealBoost.Infrastructure\BorealBoost.Infrastructure.csproj", refs);
+        Assert.Contains(@"..\BorealBoost.Optimization\BorealBoost.Optimization.csproj", refs);
+        Assert.Contains(@"..\BorealBoost.System\BorealBoost.System.csproj", refs);
+        Assert.DoesNotContain(refs, item => item.Contains("Drivers", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(refs, item => item.Contains("Benchmark", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(refs, item => item.Contains("Reporting", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -32,14 +49,25 @@ public sealed class ArchitectureDependencyTests
     {
         var modules = new[]
         {
-            "BorealBoost.Optimization",
-            "BorealBoost.Restore",
             "BorealBoost.Benchmark",
             "BorealBoost.Drivers",
             "BorealBoost.Reporting"
         };
 
         foreach (var module in modules)
+        {
+            var project = LoadProject("src", module, $"{module}.csproj");
+            var refs = ProjectReferences(project).ToArray();
+
+            Assert.Single(refs);
+            Assert.Equal(@"..\BorealBoost.Core\BorealBoost.Core.csproj", refs[0]);
+        }
+    }
+
+    [Fact]
+    public void Optimization_and_restore_keep_core_as_only_project_reference()
+    {
+        foreach (var module in new[] { "BorealBoost.Optimization", "BorealBoost.Restore" })
         {
             var project = LoadProject("src", module, $"{module}.csproj");
             var refs = ProjectReferences(project).ToArray();

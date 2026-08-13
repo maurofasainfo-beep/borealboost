@@ -1,5 +1,9 @@
 using BorealBoost.Core.AgentProtocol;
+using BorealBoost.Core.Identity;
+using BorealBoost.Core.Optimization;
 using BorealBoost.Infrastructure.AgentIpc;
+using BorealBoost.Optimization.Catalog;
+using System.Text.Json;
 
 namespace BorealBoost.Tests.Unit;
 
@@ -30,5 +34,38 @@ public sealed class AgentPipeProtocolTests
 
         Assert.True(result.IsFailure);
         Assert.Equal("protocol.read.failed", result.ErrorCode);
+    }
+
+    [Fact]
+    public void DeserializePayload_rejects_extra_dangerous_payload_member()
+    {
+        using var document = JsonDocument.Parse("""
+        {
+          "planSchemaVersion": "4.0.0",
+          "catalogVersion": "4.0.0-built-in-foundation",
+          "optimizationId": { "value": "BB.OPT.INTEGRATION.REGISTRY_PROOF" },
+          "operation": null,
+          "command": "cmd.exe /c whoami"
+        }
+        """);
+
+        var message = new AgentProtocolMessage(
+            new AgentMessageEnvelope(
+                ProtocolVersion.Current,
+                MessageType.ValidateOperationRequest,
+                SessionId.New(),
+                CorrelationId.New(),
+                RequestId.New(),
+                1,
+                DateTimeOffset.UtcNow,
+                AgentNonce.GenerateBootstrapNonce(),
+                PayloadType.ValidateOperationRequest,
+                128),
+            document.RootElement.Clone());
+
+        var result = AgentPipeProtocol.DeserializePayload<ValidateOperationRequestPayload>(message);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("protocol.payload.malformed", result.ErrorCode);
     }
 }

@@ -1,7 +1,7 @@
 # BorealBoost - Architecture Decision Record
 
 Data: 2026-08-12
-Status: aprovado e atualizado ate a Fase 3
+Status: aprovado e atualizado ate a Fase 4
 
 ## ADR-001 - Stack de aplicacao desktop
 
@@ -319,3 +319,47 @@ Fases futuras precisam de recomendacoes tecnicamente defensaveis antes de existi
 - Presets Basico, Medio, Avancado e Custom sao apenas preview.
 - Nenhuma recomendacao executa Registry, Services, Power, DNS, Drivers, Windows Update, Benchmark, Boreal Score operacional, Optimization ou Rollback.
 - Falha isolada de uma regra vira warning tecnico e nao recomendacao falsa.
+
+## ADR-016 - Fase 4 como motor transacional antes do catalogo real
+
+### Decisao
+
+Implementar a Fase 4 como infraestrutura de `OptimizationDefinition`, `OperationSpec`, `ExecutionPlan`, Dry Run, Preflight, `OptimizationSession`, journal, snapshot, verification, rollback e recovery, com apenas uma operacao real controlada de integracao em HKCU proprio do BorealBoost.
+
+### Justificativa
+
+O produto precisa provar o pipeline de seguranca antes de qualquer tweak real. Uma colecao de otimizacoes sem transacao, snapshot e rollback aumentaria risco operacional. A chave `HKCU\Software\BorealBoost\IntegrationTest\Phase4ControlledValue` permite validar mutacao, verify e undo sem tocar configuracoes reais de performance, seguranca, drivers, rede ou servicos.
+
+### Implicacoes
+
+- Catalogo amplo de tweaks fica bloqueado ate a Fase 5.
+- `BorealBoost.Agent` aceita somente mensagens IPC tipadas e OperationType allowlisted.
+- O handler da Fase 4 revalida target, timeout, retry, snapshot e rollback mesmo apos validacao do plano.
+- Persistencia de sessao usa envelope versionado e hash de integridade para detectar corrupcao acidental.
+- Restore Point real permanece modelado como policy, mas nao e criado automaticamente na Fase 4.
+- Uma sessao sem conclusao duravel entra em recovery e nunca aparece como `Completed`.
+
+## ADR-017 - Revalidacao transacional da Fase 4
+
+### Decisao
+
+Endurecer a Fase 4 apos auditoria com quatro contratos adicionais:
+
+- rollback Registry deve preservar exatamente existencia, tipo, valor bruto e `RegistryView` dos tipos suportados;
+- `ExecutionPlan` aprovado deve ser protegido por hash canonico e OperationSpec canonica do catalogo built-in confiavel;
+- `OperationSnapshotItem` deve possuir hash de integridade local e binding a sessao/plano/operacao antes de rollback;
+- sessoes mutaveis usam lock cross-process por usuario e recovery expoe artefatos invalidos como acao manual.
+
+### Justificativa
+
+A infraestrutura da Fase 4 sera a base para catalogo real na Fase 5. Antes de ampliar qualquer tweak, o produto precisa provar que rollback exato, deteccao de adulteracao, recovery conservador e exclusao concorrente funcionam em um alvo controlado.
+
+### Implicacoes
+
+- `REG_EXPAND_SZ` e capturado com `DoNotExpandEnvironmentNames` e restaurado como `REG_EXPAND_SZ`.
+- `String`, `ExpandString`, `DWord`, `QWord`, `MultiString` e `Binary` sao preservados no alvo HKCU controlado.
+- Tipo unsupported e snapshot adulterado bloqueiam apply/rollback.
+- Agent rejeita payload com mesmo `OperationId` e target/desired state adulterado.
+- Plano alterado apos aprovacao e rejeitado por hash.
+- JSON truncado, schema incompativel, hash divergente e `.tmp` residual aparecem como `ManualRecovery`, sem rollback automatico.
+- Duas instancias do BorealBoost nao podem executar sessoes mutaveis simultaneas.

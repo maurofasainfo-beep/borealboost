@@ -1,7 +1,7 @@
 # BorealBoost - Optimization Engine
 
 Data: 2026-08-12
-Status: arquitetura conceitual.
+Status: arquitetura implementada parcialmente na Fase 4; catalogo amplo de tweaks fica para Fase 5.
 
 ## Objetivo
 
@@ -33,6 +33,49 @@ O engine nao deve ser uma lista de comandos. Ele deve transformar recomendacoes 
 20. GenerateResults
 
 ## Componentes
+
+## Implementacao Fase 4
+
+A Fase 4 implementa o nucleo operacional seguro com escopo propositalmente pequeno:
+
+- `OptimizationDefinition` e `OperationSpec` tipados em `BorealBoost.Core`;
+- `BuiltInOptimizationCatalog` com apenas `BB.OPT.INTEGRATION.REGISTRY_PROOF`;
+- `ExecutionPlanner` e `ExecutionPlanValidator`;
+- `DryRunService` e `PreflightService`;
+- `OptimizationSessionService` com state machine e exclusao de concorrencia;
+- `FileOptimizationSessionStore` com escrita temp + flush + rename e hash SHA-256 de integridade;
+- `OperationSnapshot` com hash por item antes de qualquer mutacao;
+- `BorealIntegrationRegistryOperationHandler` para prova controlada em HKCU;
+- verification obrigatoria;
+- rollback por snapshot;
+- recovery foundation para sessoes incompletas;
+- mensagens IPC tipadas no Agent para validate/capture/execute/verify/rollback.
+
+Nao implementado na Fase 4:
+
+- catalogo updated remoto;
+- assinatura digital de catalogo em runtime;
+- catalogo real Safe/Medium/Advanced/Aggressive;
+- restore point real;
+- Service/Power/DNS/AppX/Driver operations;
+- benchmark, Boreal Score operacional ou reporting.
+
+### Operacao real controlada
+
+Recurso usado:
+
+`HKCU\Software\BorealBoost\IntegrationTest\Phase4ControlledValue`
+
+Regras:
+
+- handler valida que hive, key, value name, view, timeout, retry, snapshot e rollback sao exatamente permitidos;
+- snapshot captura existencia, tipo, valor anterior bruto e RegistryView;
+- apply grava somente o valor de prova do BorealBoost;
+- verify le o valor de volta;
+- rollback restaura exatamente existencia/tipo/valor original ou remove o valor se ele nao existia;
+- se o valor mudar externamente entre apply e rollback, rollback nao sobrescreve cegamente;
+- tipos preservados: `String`, `ExpandString`, `DWord`, `QWord`, `MultiString` e `Binary`;
+- `REG_EXPAND_SZ` e capturado sem expandir variaveis de ambiente.
 
 ### OptimizationCatalog
 
@@ -196,6 +239,7 @@ Antes de aplicar qualquer operacao:
 
 - cria `OptimizationSession` em estado `Planned`;
 - grava ExecutionPlan, `catalogVersion`, `catalogHash` e `planHash`;
+- valida `planHash` canonico antes de preflight/apply;
 - cria journal duravel;
 - grava entrada `SnapshotCaptured` por operacao antes do apply;
 - grava `ApplyStarted` antes de tocar no sistema;
@@ -204,6 +248,8 @@ Antes de aplicar qualquer operacao:
 - grava `Verified` somente quando a estrategia de verificacao confirmar o estado.
 
 `Completed` so e permitido apos todas as operacoes obrigatorias estarem `Verified`, itens opcionais falhos estarem explicitamente classificados, reboot pendente estar registrado e commit duravel concluido.
+
+O Agent valida a OperationSpec recebida contra a definicao canonica do catalogo built-in confiavel. Mesmo `OptimizationId` e `OperationId` validos nao bastam: target, desired state, timeout, retry, snapshot, reversibilidade, rollback e handler precisam coincidir com a definicao aprovada.
 
 ### Contrato transacional de OperationSpec
 
@@ -264,16 +310,18 @@ Tipos:
 
 Aciona undo por item ou sessao usando snapshot. Se nao houver snapshot, so usa default oficial quando documentado com evidencia.
 
-## Operacoes suportadas inicialmente
+## Tipos planejados para fases futuras
 
-- Registry read/set/delete.
-- Service read/start/stop/set startup type.
-- Powercfg read/create/duplicate/activate/delete.
-- DISM optional feature query/enable/disable.
-- DNS query/set/reset.
-- AppX/provisioned package query/remove.
-- File cleanup com escopo controlado.
-- System repair via handlers internos de fixes, nao como performance tweak e nunca como string livre.
+Fora da prova controlada da Fase 4, os tipos abaixo permanecem planejados para fases futuras e exigem handlers especificos, validação, snapshot, verify e rollback antes de qualquer uso real:
+
+- Registry read/set/delete fora da chave de integracao;
+- Service read/start/stop/set startup type;
+- Powercfg read/create/duplicate/activate/delete;
+- DISM optional feature query/enable/disable;
+- DNS query/set/reset;
+- AppX/provisioned package query/remove;
+- File cleanup com escopo controlado;
+- System repair via handlers internos de fixes, nao como performance tweak e nunca como string livre;
 - PnPUtil/driver flow no Driver Engine.
 
 ## Politica de falha

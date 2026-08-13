@@ -32,12 +32,13 @@ public sealed class AgentFoundationService : IHostedService
         var appInfo = _applicationInfoProvider.GetApplicationInfo();
 
         _logger.LogInformation(
-            "BorealBoost.Agent foundation started. BootstrapRequested={BootstrapRequested}; Protocol={ProtocolVersion}; PrivilegedOperationHandlers=0",
+            "BorealBoost.Agent foundation started. BootstrapRequested={BootstrapRequested}; Protocol={ProtocolVersion}; PrivilegedOperationHandlers=1; PerformanceTweaks=0",
             _options.IsHandshakeBootstrapRequested,
             _options.ProtocolVersion?.ToString() ?? "none");
 
         Console.WriteLine($"BorealBoost.Agent {appInfo.Version} foundation");
-        Console.WriteLine("Privileged operation handlers: 0");
+        Console.WriteLine("Allowlisted operation handlers: 1 controlled integration handler");
+        Console.WriteLine("Performance tweak handlers: 0");
         Console.WriteLine("Arbitrary command execution: disabled");
 
         if (_options.IsHandshakeBootstrapRequested)

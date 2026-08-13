@@ -1,4 +1,5 @@
 using BorealBoost.Core.Identity;
+using BorealBoost.Core.Optimization;
 using System.Text.Json;
 
 namespace BorealBoost.Core.AgentProtocol;
@@ -9,6 +10,16 @@ public enum MessageType
     HandshakeResponse,
     AgentStatusRequest,
     AgentStatusResponse,
+    ValidateOperationRequest,
+    ValidateOperationResponse,
+    CaptureSnapshotRequest,
+    CaptureSnapshotResponse,
+    ExecuteOperationRequest,
+    ExecuteOperationResponse,
+    VerifyOperationRequest,
+    VerifyOperationResponse,
+    RollbackOperationRequest,
+    RollbackOperationResponse,
     ShutdownRequest,
     ShutdownResponse,
     Error
@@ -21,6 +32,16 @@ public enum PayloadType
     HandshakeResponse,
     AgentStatusRequest,
     AgentStatusResponse,
+    ValidateOperationRequest,
+    ValidateOperationResponse,
+    CaptureSnapshotRequest,
+    CaptureSnapshotResponse,
+    ExecuteOperationRequest,
+    ExecuteOperationResponse,
+    VerifyOperationRequest,
+    VerifyOperationResponse,
+    RollbackOperationRequest,
+    RollbackOperationResponse,
     ShutdownRequest,
     ShutdownResponse,
     Error
@@ -39,8 +60,72 @@ public sealed record HandshakeResponsePayload(string AgentVersion, ProtocolVersi
 public sealed record AgentStatusRequestPayload()
     : AgentPayload(PayloadType.AgentStatusRequest);
 
-public sealed record AgentStatusResponsePayload(string AgentVersion, bool AcceptsPrivilegedOperations)
+public sealed record AgentStatusResponsePayload(string AgentVersion, bool AcceptsPrivilegedOperations, bool IsElevated)
     : AgentPayload(PayloadType.AgentStatusResponse);
+
+public sealed record ValidateOperationRequestPayload(
+    string PlanSchemaVersion,
+    string CatalogVersion,
+    OptimizationId OptimizationId,
+    OperationSpec Operation)
+    : AgentPayload(PayloadType.ValidateOperationRequest);
+
+public sealed record ValidateOperationResponsePayload(
+    bool Accepted,
+    IReadOnlyList<OptimizationIssue> Issues,
+    IReadOnlyList<OperationType> SupportedOperationTypes)
+    : AgentPayload(PayloadType.ValidateOperationResponse);
+
+public sealed record CaptureSnapshotRequestPayload(
+    string PlanSchemaVersion,
+    string CatalogVersion,
+    OptimizationId OptimizationId,
+    OperationSpec Operation)
+    : AgentPayload(PayloadType.CaptureSnapshotRequest);
+
+public sealed record CaptureSnapshotResponsePayload(
+    bool Captured,
+    OperationSnapshotItem? SnapshotItem,
+    IReadOnlyList<OptimizationIssue> Issues)
+    : AgentPayload(PayloadType.CaptureSnapshotResponse);
+
+public sealed record ExecuteOperationRequestPayload(
+    string PlanSchemaVersion,
+    string CatalogVersion,
+    OptimizationId OptimizationId,
+    OperationSpec Operation,
+    OperationSnapshotItem SnapshotItem)
+    : AgentPayload(PayloadType.ExecuteOperationRequest);
+
+public sealed record ExecuteOperationResponsePayload(
+    OperationExecutionResult? Result,
+    IReadOnlyList<OptimizationIssue> Issues)
+    : AgentPayload(PayloadType.ExecuteOperationResponse);
+
+public sealed record VerifyOperationRequestPayload(
+    string PlanSchemaVersion,
+    string CatalogVersion,
+    OptimizationId OptimizationId,
+    OperationSpec Operation)
+    : AgentPayload(PayloadType.VerifyOperationRequest);
+
+public sealed record VerifyOperationResponsePayload(
+    OperationVerificationResult? Result,
+    IReadOnlyList<OptimizationIssue> Issues)
+    : AgentPayload(PayloadType.VerifyOperationResponse);
+
+public sealed record RollbackOperationRequestPayload(
+    string PlanSchemaVersion,
+    string CatalogVersion,
+    OptimizationId OptimizationId,
+    OperationSpec Operation,
+    OperationSnapshotItem SnapshotItem)
+    : AgentPayload(PayloadType.RollbackOperationRequest);
+
+public sealed record RollbackOperationResponsePayload(
+    OperationRollbackResult? Result,
+    IReadOnlyList<OptimizationIssue> Issues)
+    : AgentPayload(PayloadType.RollbackOperationResponse);
 
 public sealed record ShutdownRequestPayload(string Reason)
     : AgentPayload(PayloadType.ShutdownRequest);

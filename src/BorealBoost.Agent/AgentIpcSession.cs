@@ -5,7 +5,9 @@ using BorealBoost.Core.AgentProtocol;
 using BorealBoost.Core.Common;
 using BorealBoost.Core.Foundation;
 using BorealBoost.Core.Identity;
+using BorealBoost.Core.Optimization;
 using BorealBoost.Infrastructure.AgentIpc;
+using BorealBoost.Optimization.Catalog;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -18,19 +20,28 @@ public sealed class AgentIpcSession
 
     private readonly AgentBootstrapOptions _options;
     private readonly IApplicationInfoProvider _applicationInfoProvider;
+    private readonly IOptimizationCatalog _catalog;
+    private readonly IOperationHandlerRegistry _operationHandlerRegistry;
     private readonly IHostApplicationLifetime _applicationLifetime;
     private readonly ILogger<AgentIpcSession> _logger;
+    private readonly AgentOperationSecurityValidator _operationSecurityValidator = new();
+    private readonly CanonicalOperationSpecValidator _canonicalOperationValidator;
 
     public AgentIpcSession(
         AgentBootstrapOptions options,
         IApplicationInfoProvider applicationInfoProvider,
+        IOptimizationCatalog catalog,
+        IOperationHandlerRegistry operationHandlerRegistry,
         IHostApplicationLifetime applicationLifetime,
         ILogger<AgentIpcSession> logger)
     {
         _options = options;
         _applicationInfoProvider = applicationInfoProvider;
+        _catalog = catalog;
+        _operationHandlerRegistry = operationHandlerRegistry;
         _applicationLifetime = applicationLifetime;
         _logger = logger;
+        _canonicalOperationValidator = new CanonicalOperationSpecValidator(catalog);
     }
 
     public async Task RunAsync(CancellationToken cancellationToken)
@@ -156,14 +167,30 @@ public sealed class AgentIpcSession
                     return true;
                 }
 
+                var isElevated = IsCurrentProcessElevated();
                 var response = CreateResponse(
                     message.Envelope,
                     MessageType.AgentStatusResponse,
                     PayloadType.AgentStatusResponse,
-                    new AgentStatusResponsePayload(appInfo.Version.ToString(), AcceptsPrivilegedOperations: false));
+                    new AgentStatusResponsePayload(appInfo.Version.ToString(), AcceptsPrivilegedOperations: isElevated, IsElevated: isElevated));
                 await AgentPipeProtocol.WriteMessageAsync(stream, response, cancellationToken).ConfigureAwait(false);
                 return false;
             }
+
+            case MessageType.ValidateOperationRequest:
+                return await HandleValidateOperationAsync(stream, message, cancellationToken).ConfigureAwait(false);
+
+            case MessageType.CaptureSnapshotRequest:
+                return await HandleCaptureSnapshotAsync(stream, message, cancellationToken).ConfigureAwait(false);
+
+            case MessageType.ExecuteOperationRequest:
+                return await HandleExecuteOperationAsync(stream, message, cancellationToken).ConfigureAwait(false);
+
+            case MessageType.VerifyOperationRequest:
+                return await HandleVerifyOperationAsync(stream, message, cancellationToken).ConfigureAwait(false);
+
+            case MessageType.RollbackOperationRequest:
+                return await HandleRollbackOperationAsync(stream, message, cancellationToken).ConfigureAwait(false);
 
             case MessageType.ShutdownRequest:
             {
@@ -181,6 +208,290 @@ public sealed class AgentIpcSession
                     .ConfigureAwait(false);
                 return true;
         }
+    }
+
+    private async Task<bool> HandleValidateOperationAsync(
+        Stream stream,
+        AgentProtocolMessage message,
+        CancellationToken cancellationToken)
+    {
+        var payload = AgentPipeProtocol.DeserializePayload<ValidateOperationRequestPayload>(message);
+        if (payload.IsFailure || payload.Value is null)
+        {
+            await WriteErrorAsync(stream, message.Envelope, payload.ErrorCode ?? "protocol.payload.invalid", payload.ErrorMessage ?? "Invalid payload.", cancellationToken)
+                .ConfigureAwait(false);
+            return true;
+        }
+
+        var issues = ValidateOperation(payload.Value.PlanSchemaVersion, payload.Value.CatalogVersion, payload.Value.OptimizationId, payload.Value.Operation);
+        var response = CreateResponse(
+            message.Envelope,
+            MessageType.ValidateOperationResponse,
+            PayloadType.ValidateOperationResponse,
+            new ValidateOperationResponsePayload(issues.Count == 0, issues, _operationHandlerRegistry.SupportedOperationTypes));
+        await AgentPipeProtocol.WriteMessageAsync(stream, response, cancellationToken).ConfigureAwait(false);
+        return false;
+    }
+
+    private async Task<bool> HandleCaptureSnapshotAsync(
+        Stream stream,
+        AgentProtocolMessage message,
+        CancellationToken cancellationToken)
+    {
+        var payload = AgentPipeProtocol.DeserializePayload<CaptureSnapshotRequestPayload>(message);
+        if (payload.IsFailure || payload.Value is null)
+        {
+            await WriteErrorAsync(stream, message.Envelope, payload.ErrorCode ?? "protocol.payload.invalid", payload.ErrorMessage ?? "Invalid payload.", cancellationToken)
+                .ConfigureAwait(false);
+            return true;
+        }
+
+        var issues = ValidateOperation(payload.Value.PlanSchemaVersion, payload.Value.CatalogVersion, payload.Value.OptimizationId, payload.Value.Operation);
+        if (issues.Count > 0)
+        {
+            await WriteOperationResponseAsync(
+                stream,
+                message.Envelope,
+                MessageType.CaptureSnapshotResponse,
+                PayloadType.CaptureSnapshotResponse,
+                new CaptureSnapshotResponsePayload(false, null, issues),
+                cancellationToken).ConfigureAwait(false);
+            return false;
+        }
+
+        var handler = GetHandler(payload.Value.Operation);
+        var snapshot = await handler.CaptureSnapshotAsync(payload.Value.Operation, cancellationToken).ConfigureAwait(false);
+        var responsePayload = snapshot.IsSuccess && snapshot.Value is not null
+            ? new CaptureSnapshotResponsePayload(true, snapshot.Value, [])
+            : new CaptureSnapshotResponsePayload(false, null, [Issue(snapshot.ErrorCode ?? "operation.snapshot.failed", snapshot.ErrorMessage ?? "Snapshot capture failed.", payload.Value.Operation.OperationId.ToString(), OperationErrorCategory.SnapshotFailed)]);
+        await WriteOperationResponseAsync(stream, message.Envelope, MessageType.CaptureSnapshotResponse, PayloadType.CaptureSnapshotResponse, responsePayload, cancellationToken).ConfigureAwait(false);
+        return false;
+    }
+
+    private async Task<bool> HandleExecuteOperationAsync(
+        Stream stream,
+        AgentProtocolMessage message,
+        CancellationToken cancellationToken)
+    {
+        var payload = AgentPipeProtocol.DeserializePayload<ExecuteOperationRequestPayload>(message);
+        if (payload.IsFailure || payload.Value is null)
+        {
+            await WriteErrorAsync(stream, message.Envelope, payload.ErrorCode ?? "protocol.payload.invalid", payload.ErrorMessage ?? "Invalid payload.", cancellationToken)
+                .ConfigureAwait(false);
+            return true;
+        }
+
+        var issues = ValidateOperation(payload.Value.PlanSchemaVersion, payload.Value.CatalogVersion, payload.Value.OptimizationId, payload.Value.Operation);
+        issues.AddRange(ValidateSnapshot(payload.Value.Operation, payload.Value.SnapshotItem));
+        if (issues.Count > 0)
+        {
+            await WriteOperationResponseAsync(stream, message.Envelope, MessageType.ExecuteOperationResponse, PayloadType.ExecuteOperationResponse, new ExecuteOperationResponsePayload(null, issues), cancellationToken).ConfigureAwait(false);
+            return false;
+        }
+
+        var result = await GetHandler(payload.Value.Operation).ApplyAsync(payload.Value.Operation, payload.Value.SnapshotItem, cancellationToken).ConfigureAwait(false);
+        var responsePayload = result.IsSuccess && result.Value is not null
+            ? new ExecuteOperationResponsePayload(result.Value, [])
+            : new ExecuteOperationResponsePayload(null, [Issue(result.ErrorCode ?? "operation.apply.failed", result.ErrorMessage ?? "Apply failed.", payload.Value.Operation.OperationId.ToString(), OperationErrorCategory.ApplyFailed)]);
+        await WriteOperationResponseAsync(stream, message.Envelope, MessageType.ExecuteOperationResponse, PayloadType.ExecuteOperationResponse, responsePayload, cancellationToken).ConfigureAwait(false);
+        return false;
+    }
+
+    private async Task<bool> HandleVerifyOperationAsync(
+        Stream stream,
+        AgentProtocolMessage message,
+        CancellationToken cancellationToken)
+    {
+        var payload = AgentPipeProtocol.DeserializePayload<VerifyOperationRequestPayload>(message);
+        if (payload.IsFailure || payload.Value is null)
+        {
+            await WriteErrorAsync(stream, message.Envelope, payload.ErrorCode ?? "protocol.payload.invalid", payload.ErrorMessage ?? "Invalid payload.", cancellationToken)
+                .ConfigureAwait(false);
+            return true;
+        }
+
+        var issues = ValidateOperation(payload.Value.PlanSchemaVersion, payload.Value.CatalogVersion, payload.Value.OptimizationId, payload.Value.Operation);
+        if (issues.Count > 0)
+        {
+            await WriteOperationResponseAsync(stream, message.Envelope, MessageType.VerifyOperationResponse, PayloadType.VerifyOperationResponse, new VerifyOperationResponsePayload(null, issues), cancellationToken).ConfigureAwait(false);
+            return false;
+        }
+
+        var result = await GetHandler(payload.Value.Operation).VerifyAsync(payload.Value.Operation, cancellationToken).ConfigureAwait(false);
+        var responsePayload = result.IsSuccess && result.Value is not null
+            ? new VerifyOperationResponsePayload(result.Value, [])
+            : new VerifyOperationResponsePayload(null, [Issue(result.ErrorCode ?? "operation.verify.failed", result.ErrorMessage ?? "Verify failed.", payload.Value.Operation.OperationId.ToString(), OperationErrorCategory.VerificationFailed)]);
+        await WriteOperationResponseAsync(stream, message.Envelope, MessageType.VerifyOperationResponse, PayloadType.VerifyOperationResponse, responsePayload, cancellationToken).ConfigureAwait(false);
+        return false;
+    }
+
+    private async Task<bool> HandleRollbackOperationAsync(
+        Stream stream,
+        AgentProtocolMessage message,
+        CancellationToken cancellationToken)
+    {
+        var payload = AgentPipeProtocol.DeserializePayload<RollbackOperationRequestPayload>(message);
+        if (payload.IsFailure || payload.Value is null)
+        {
+            await WriteErrorAsync(stream, message.Envelope, payload.ErrorCode ?? "protocol.payload.invalid", payload.ErrorMessage ?? "Invalid payload.", cancellationToken)
+                .ConfigureAwait(false);
+            return true;
+        }
+
+        var issues = ValidateOperation(payload.Value.PlanSchemaVersion, payload.Value.CatalogVersion, payload.Value.OptimizationId, payload.Value.Operation);
+        issues.AddRange(ValidateSnapshot(payload.Value.Operation, payload.Value.SnapshotItem));
+        if (issues.Count > 0)
+        {
+            await WriteOperationResponseAsync(stream, message.Envelope, MessageType.RollbackOperationResponse, PayloadType.RollbackOperationResponse, new RollbackOperationResponsePayload(null, issues), cancellationToken).ConfigureAwait(false);
+            return false;
+        }
+
+        var result = await GetHandler(payload.Value.Operation).RollbackAsync(payload.Value.Operation, payload.Value.SnapshotItem, cancellationToken).ConfigureAwait(false);
+        var responsePayload = result.IsSuccess && result.Value is not null
+            ? new RollbackOperationResponsePayload(result.Value, [])
+            : new RollbackOperationResponsePayload(null, [Issue(result.ErrorCode ?? "operation.rollback.failed", result.ErrorMessage ?? "Rollback failed.", payload.Value.Operation.OperationId.ToString(), OperationErrorCategory.RollbackFailed)]);
+        await WriteOperationResponseAsync(stream, message.Envelope, MessageType.RollbackOperationResponse, PayloadType.RollbackOperationResponse, responsePayload, cancellationToken).ConfigureAwait(false);
+        return false;
+    }
+
+    private List<OptimizationIssue> ValidateOperation(
+        string planSchemaVersion,
+        string catalogVersion,
+        OptimizationId optimizationId,
+        OperationSpec operation)
+    {
+        var issues = new List<OptimizationIssue>();
+        if (planSchemaVersion != "4.0.0")
+        {
+            issues.Add(Issue("agent.plan.schema_unsupported", "ExecutionPlan schema version is unsupported.", "ExecutionPlan"));
+        }
+
+        if (!OptimizationId.TryCreate(optimizationId.Value, out _))
+        {
+            issues.Add(Issue("agent.optimization_id_invalid", "OptimizationId is invalid.", optimizationId.ToString()));
+        }
+
+        issues.AddRange(_canonicalOperationValidator.Validate(catalogVersion, optimizationId, operation));
+
+        var definition = _catalog.Find(optimizationId);
+        if (definition?.RequiresElevation == true && !IsCurrentProcessElevated())
+        {
+            issues.Add(Issue("agent.elevation.required", "Trusted operation requires an elevated Agent token.", optimizationId.ToString()));
+        }
+
+        if (!_operationHandlerRegistry.TryGetHandler(operation.OperationType, out _))
+        {
+            issues.Add(Issue("agent.operation.handler_missing", "OperationType has no allowlisted handler.", operation.OperationId.ToString()));
+        }
+
+        var security = _operationSecurityValidator.Validate(operation);
+        if (security.IsFailure)
+        {
+            issues.Add(Issue(security.ErrorCode ?? "agent.operation.rejected", security.ErrorMessage ?? "Operation rejected by Agent.", operation.OperationId.ToString()));
+        }
+
+        return issues;
+    }
+
+    private static List<OptimizationIssue> ValidateSnapshot(OperationSpec operation, OperationSnapshotItem snapshot)
+    {
+        var issues = new List<OptimizationIssue>();
+        if (snapshot.OperationId != operation.OperationId ||
+            snapshot.RegistryTarget is null ||
+            operation.RegistryValue is null ||
+            !OperationSnapshotHasher.IsValid(snapshot) ||
+            snapshot.ResourceType != OperationResourceType.RegistryValue ||
+            snapshot.RegistryTarget.Hive != operation.RegistryValue.Target.Hive ||
+            snapshot.RegistryTarget.View != operation.RegistryValue.Target.View ||
+            !string.Equals(snapshot.RegistryTarget.KeyPath, operation.RegistryValue.Target.KeyPath, StringComparison.Ordinal) ||
+            !string.Equals(snapshot.RegistryTarget.ValueName, operation.RegistryValue.Target.ValueName, StringComparison.Ordinal) ||
+            !string.Equals(snapshot.ResourceIdentity, $"{operation.RegistryValue.Target.Hive}\\{operation.RegistryValue.Target.KeyPath}\\{operation.RegistryValue.Target.ValueName}", StringComparison.Ordinal) ||
+            snapshot.RestorationStrategy != operation.RollbackStrategy ||
+            !SnapshotValueShapeIsValid(snapshot))
+        {
+            issues.Add(Issue("agent.snapshot.mismatch", "OperationSnapshot does not match OperationSpec.", operation.OperationId.ToString(), OperationErrorCategory.SnapshotFailed));
+        }
+
+        return issues;
+    }
+
+    private static bool SnapshotValueShapeIsValid(OperationSnapshotItem snapshot)
+    {
+        if (!snapshot.ExistedBefore)
+        {
+            return snapshot.PreviousValueKind is null &&
+                   snapshot.PreviousStringValue is null &&
+                   snapshot.PreviousDWordValue is null &&
+                   snapshot.PreviousQWordValue is null &&
+                   snapshot.PreviousMultiStringValue is null &&
+                   snapshot.PreviousBinaryValue is null;
+        }
+
+        return snapshot.PreviousValueKind switch
+        {
+            RegistryValueDataKind.String or RegistryValueDataKind.ExpandString =>
+                snapshot.PreviousStringValue is not null &&
+                snapshot.PreviousDWordValue is null &&
+                snapshot.PreviousQWordValue is null &&
+                snapshot.PreviousMultiStringValue is null &&
+                snapshot.PreviousBinaryValue is null,
+            RegistryValueDataKind.DWord =>
+                snapshot.PreviousStringValue is null &&
+                snapshot.PreviousDWordValue is not null &&
+                snapshot.PreviousQWordValue is null &&
+                snapshot.PreviousMultiStringValue is null &&
+                snapshot.PreviousBinaryValue is null,
+            RegistryValueDataKind.QWord =>
+                snapshot.PreviousStringValue is null &&
+                snapshot.PreviousDWordValue is null &&
+                snapshot.PreviousQWordValue is not null &&
+                snapshot.PreviousMultiStringValue is null &&
+                snapshot.PreviousBinaryValue is null,
+            RegistryValueDataKind.MultiString =>
+                snapshot.PreviousStringValue is null &&
+                snapshot.PreviousDWordValue is null &&
+                snapshot.PreviousQWordValue is null &&
+                snapshot.PreviousMultiStringValue is not null &&
+                snapshot.PreviousBinaryValue is null,
+            RegistryValueDataKind.Binary =>
+                snapshot.PreviousStringValue is null &&
+                snapshot.PreviousDWordValue is null &&
+                snapshot.PreviousQWordValue is null &&
+                snapshot.PreviousMultiStringValue is null &&
+                snapshot.PreviousBinaryValue is not null,
+            _ => false
+        };
+    }
+
+    private IOperationHandler GetHandler(OperationSpec operation)
+    {
+        if (_operationHandlerRegistry.TryGetHandler(operation.OperationType, out var handler))
+        {
+            return handler;
+        }
+
+        throw new InvalidOperationException("Operation handler missing after validation.");
+    }
+
+    private static Task<Result> WriteOperationResponseAsync(
+        Stream stream,
+        AgentMessageEnvelope request,
+        MessageType responseType,
+        PayloadType payloadType,
+        object payload,
+        CancellationToken cancellationToken)
+    {
+        var response = CreateResponse(request, responseType, payloadType, payload);
+        return AgentPipeProtocol.WriteMessageAsync(stream, response, cancellationToken);
+    }
+
+    private static OptimizationIssue Issue(
+        string code,
+        string message,
+        string scope,
+        OperationErrorCategory category = OperationErrorCategory.ProtocolRejected)
+    {
+        return new OptimizationIssue(code, message, scope, category);
     }
 
     private static AgentProtocolMessage CreateResponse(
@@ -247,5 +558,12 @@ public sealed class AgentIpcSession
             inBufferSize: 0,
             outBufferSize: 0,
             pipeSecurity: security);
+    }
+
+    private static bool IsCurrentProcessElevated()
+    {
+        using var identity = WindowsIdentity.GetCurrent();
+        var principal = new WindowsPrincipal(identity);
+        return principal.IsInRole(WindowsBuiltInRole.Administrator);
     }
 }

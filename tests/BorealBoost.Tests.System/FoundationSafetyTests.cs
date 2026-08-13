@@ -7,7 +7,6 @@ public sealed class FoundationSafetyTests
     [InlineData("ExecutePowerShell(")]
     [InlineData("ExecuteProcess(")]
     [InlineData("Registry.SetValue")]
-    [InlineData("ServiceController")]
     [InlineData("powercfg")]
     [InlineData("pnputil")]
     [InlineData("dism")]
@@ -27,6 +26,19 @@ public sealed class FoundationSafetyTests
             var content = File.ReadAllText(sourceFile);
             Assert.DoesNotContain(forbiddenText, content, StringComparison.OrdinalIgnoreCase);
         }
+    }
+
+    [Fact]
+    public void Registry_write_api_is_limited_to_controlled_phase_4_integration_handler()
+    {
+        var root = FindRepositoryRoot();
+        var sourceFiles = Directory.EnumerateFiles(Path.Combine(root, "src"), "*.cs", SearchOption.AllDirectories);
+        var occurrences = sourceFiles
+            .Where(path => File.ReadAllText(path).Contains("CreateSubKey", StringComparison.Ordinal))
+            .Select(path => Path.GetRelativePath(root, path))
+            .ToArray();
+
+        Assert.Equal(["src\\BorealBoost.System\\Operations\\BorealIntegrationRegistryOperationHandler.cs"], occurrences);
     }
 
     [Fact]

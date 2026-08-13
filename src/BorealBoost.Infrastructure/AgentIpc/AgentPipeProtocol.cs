@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using BorealBoost.Core.AgentProtocol;
 using BorealBoost.Core.Common;
 using BorealBoost.Core.Identity;
@@ -8,7 +9,11 @@ namespace BorealBoost.Infrastructure.AgentIpc;
 
 public static class AgentPipeProtocol
 {
-    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
+    {
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     public static AgentProtocolMessage CreateMessage(
         SessionId sessionId,

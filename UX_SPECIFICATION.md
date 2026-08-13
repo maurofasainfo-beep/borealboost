@@ -1,7 +1,7 @@
 # BorealBoost - UX Specification
 
 Data: 2026-08-12
-Status: especificacao de experiencia atualizada ate a Fase 3.
+Status: especificacao de experiencia atualizada ate a Fase 4.
 
 ## Direcao visual
 
@@ -168,6 +168,15 @@ CTA:
 
 - "Criar ponto de restauracao e otimizar".
 
+Status da Fase 4:
+
+- pagina `Otimizacao` funcional para Review Plan e Dry Run;
+- exige Scanner + Analise antes de criar plano;
+- mostra operacoes planejadas, risco, reboot, restore point policy, snapshot e blockers;
+- o botao de prova controlada executa somente o recurso de integracao HKCU proprio do BorealBoost;
+- nenhuma selecao de preset aplica tweaks reais;
+- nenhum ganho de FPS, performance ou Boreal Score e exibido.
+
 ## Modal Avancado
 
 Deve explicar:
@@ -281,6 +290,13 @@ Detalhe:
 - estado atual;
 - reverter item;
 - reverter sessao.
+
+Status da Fase 4:
+
+- pagina `Restauracao` lista sessoes persistidas, estado, snapshot items e recovery candidates;
+- nao promete rollback quando nao existe snapshot;
+- recovery mostra acao sugerida, sem executar rollback automatico;
+- rollback operacional existe no engine e e validado por testes controlados.
 
 ## Logs
 

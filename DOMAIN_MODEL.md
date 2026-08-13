@@ -1,7 +1,7 @@
 # BorealBoost - Domain Model
 
 Data: 2026-08-12
-Status: modelo conceitual com contratos implementados para Foundation, System Scanner e Analysis/Recommendation Engine.
+Status: modelo conceitual com contratos implementados para Foundation, System Scanner, Analysis/Recommendation Engine e Optimization/Rollback Foundation.
 
 ## Agregados principais
 
@@ -197,6 +197,34 @@ Invariantes da Fase 3:
 
 Entrada declarativa do catalogo.
 
+Na Fase 4, o modelo implementado inclui:
+
+- `OptimizationId`;
+- `Version`;
+- `Title`;
+- `Description`;
+- `Category`;
+- `RiskLevel`;
+- `EvidenceLevel`;
+- `SupportedWindows`;
+- `CompatibilityRequirements`;
+- `RequiredCapabilities`;
+- `Conflicts`;
+- `Dependencies`;
+- `RequiresElevation`;
+- `RequiresRestart`;
+- `SupportsUndo`;
+- `RestorePointRequirement`;
+- `SnapshotRequirements`;
+- `OperationSpecs`;
+- `VerificationSpecs`;
+- `RollbackSpecs`;
+- `FailurePolicy`;
+- `TimeoutPolicy`;
+- `SourceMetadata`.
+
+O catalogo built-in da Fase 4 possui apenas `BB.OPT.INTEGRATION.REGISTRY_PROOF`. Ele nao representa tweak de performance.
+
 Campos obrigatorios:
 
 - id;
@@ -264,6 +292,23 @@ Regras:
 
 Define uma operacao atomica modelada.
 
+Na Fase 4, `OperationSpec` implementado declara:
+
+- `OperationId`;
+- `OperationType`;
+- payload tipado de Registry quando aplicavel;
+- `timeoutPolicy`;
+- `retryPolicy`;
+- `idempotency`;
+- `reversibility`;
+- `rebootBoundary`;
+- `failurePolicy`;
+- `verificationStrategy`;
+- `rollbackStrategy`;
+- `snapshotRequirements`.
+
+A unica operacao real allowlisted e `BorealIntegrationRegistryValue`, restrita a `HKCU\Software\BorealBoost\IntegrationTest\Phase4ControlledValue`.
+
 Tipos:
 
 - RegistrySetValue;
@@ -328,6 +373,31 @@ Saidas:
 
 Plano gerado antes de alterar o sistema.
 
+Na Fase 4, `ExecutionPlan` implementado contem:
+
+- `PlanId`;
+- `SessionId`;
+- `ScanId`;
+- `AnalysisId`;
+- `SchemaVersion`;
+- `EngineVersion`;
+- `CatalogVersion`;
+- `CreatedAtUtc`;
+- alvo OS/build/architecture;
+- `SelectedOptimizationIds`;
+- `OrderedOperations`;
+- dependencies/conflicts;
+- `RiskSummary`;
+- elevation/restart/restore point policy;
+- snapshot requirements;
+- reboot boundaries;
+- estimated step count;
+- warnings/blockers;
+- `PlanHash`;
+- `IsApproved`.
+
+Plano invalido, obsoleto ou sem handler allowlisted nao executa.
+
 Campos:
 
 - planId;
@@ -350,6 +420,30 @@ Campos:
 ### OptimizationSession
 
 Execucao de uma otimizacao.
+
+Estados implementados na Fase 4:
+
+- Created;
+- Planned;
+- PreflightPassed;
+- Snapshotting;
+- Ready;
+- Executing;
+- Verifying;
+- Completed;
+- CompletedWithWarnings;
+- Failed;
+- RollbackPending;
+- RollingBack;
+- RolledBack;
+- RollbackFailed;
+- Cancelled;
+- Interrupted;
+- RecoveryRequired;
+- RebootPending;
+- ManualActionRequired.
+
+Transicoes invalidas sao rejeitadas por state machine central. `Completed` so e usado apos verify obrigatorio e persistencia duravel.
 
 Estados:
 
@@ -437,6 +531,21 @@ Regras:
 ### Snapshot
 
 Captura valores anteriores de cada item alteravel.
+
+Na Fase 4, `OperationSnapshot` e separado de `SystemSnapshot`. Ele guarda itens por operacao com `SnapshotItemId`, `OperationId`, tipo de recurso, identidade, existencia anterior, valor/tipo anterior quando permitido, metodo de captura, estrategia de restauracao, limitacoes e metadata de verificacao.
+
+Valores de snapshot sao classificados por `OptimizationPrivacyPolicy`; valores string anteriores sao redigidos para usos que nao precisam do dado bruto.
+
+Na revalidacao da Fase 4, `OperationSnapshotItem` tambem registra campos tipados para `QWord`, `MultiString` e `Binary`, alem de `SnapshotHash`. O hash cobre identidade do recurso, tipo, valor bruto, capture method, restoration strategy e metadata. Snapshot sem hash valido, pertencente a outra sessao/plano ou semanticamente incoerente nao pode ser usado para apply/rollback.
+
+Para o alvo Registry controlado da Fase 4, os tipos preservados exatamente sao:
+
+- `String`;
+- `ExpandString`;
+- `DWord`;
+- `QWord`;
+- `MultiString`;
+- `Binary`.
 
 SnapshotItem deve conter:
 

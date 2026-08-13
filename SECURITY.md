@@ -1,7 +1,7 @@
 # BorealBoost - Security
 
 Data: 2026-08-12
-Status: politica de seguranca aprovada e atualizada ate a Fase 3.
+Status: politica de seguranca aprovada e atualizada ate a Fase 4.
 
 ## Principios
 
@@ -229,6 +229,36 @@ Dados que nao devem ser copiados para recomendacoes por padrao:
 Snapshots devem ficar em ProgramData com ACL restrita a Administrators e usuario tecnico quando aplicavel.
 
 Devem evitar capturar valores sensiveis. Se um valor alvo parecer segredo, a operacao deve mascarar ou bloquear captura.
+
+## Optimization Execution - Fase 4
+
+A Fase 4 introduz infraestrutura de mutacao somente para prova controlada. A unica operacao real permitida e `BorealIntegrationRegistryValue`, restrita a:
+
+`HKCU\Software\BorealBoost\IntegrationTest\Phase4ControlledValue`
+
+Controles implementados:
+
+- `OperationSpec` declarativo e tipado;
+- `AgentOperationSecurityValidator` revalida OperationType, OptimizationId, OperationId, target, view, timeout, retry, reversibilidade, snapshot e rollback;
+- Agent compara `CatalogVersion`, `OptimizationId`, `OperationId`, target e desired state contra a OperationSpec canonica do catalogo built-in confiavel;
+- Agent rejeita OperationType desconhecido e target fora da allowlist;
+- `JsonUnmappedMemberHandling.Disallow` no protocolo IPC rejeita campos extras desconhecidos em payloads tipados;
+- snapshot persistido antes do apply;
+- `OperationSnapshotItem` possui hash local e e rejeitado quando adulterado ou pertencente a outra sessao/plano;
+- verify obrigatorio antes de commit;
+- rollback usa estado original capturado;
+- sessao interrompida sem `CompletedAtUtc` entra no recovery foundation;
+- recovery expoe artefatos corrompidos/incompativeis como `ManualRecovery`, sem apagamento silencioso;
+- lock cross-process impede duas sessoes mutaveis simultaneas por usuario.
+
+O handler Registry controlado preserva exatamente `String`, `ExpandString`, `DWord`, `QWord`, `MultiString` e `Binary`. Tipos nao suportados sao rejeitados antes de apply/rollback; `REG_EXPAND_SZ` nao e expandido para captura.
+
+Nao foi implementado nesta fase:
+
+- catalogo de tweaks reais;
+- alteracao de Services, Power, DNS, drivers ou Windows Update;
+- restore point real;
+- executor generico de processo, cmd ou PowerShell.
 
 ## Relatorios
 

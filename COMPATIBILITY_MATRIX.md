@@ -89,7 +89,7 @@ A Fase 3 adiciona compatibilidade no nivel de recomendacao:
 - `Incompatible`;
 - `Unknown`.
 
-Essa compatibilidade e informativa e read-only. Ela nao autoriza apply. Compatibility operacional de otimizacoes, Detection, ExecutionPlan e revalidacao pelo Agent pertencem a Fase 4 consolidada e ao Catalogo da Fase 5.
+Essa compatibilidade e informativa e read-only. Ela nao autoriza apply. Na Fase 4, compatibility operacional entra no `ExecutionPlan` e na revalidacao do Agent para a prova controlada. O catalogo real de otimizacoes e suas regras completas ficam para a Fase 5.
 
 Regras:
 

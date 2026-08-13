@@ -1,7 +1,7 @@
 # BorealBoost - Architecture
 
 Data: 2026-08-12
-Status: arquitetura aprovada; Fases 1, 2 e 3 implementadas.
+Status: arquitetura aprovada; Fases 1, 2, 3 e 4 implementadas.
 
 ## Visao geral
 
@@ -41,9 +41,9 @@ A UI nunca deve conter logica de tweak. Ela orquestra casos de uso e apresenta e
 
 ## Dependencias entre camadas
 
-`App` depende de contratos de `Core`, casos de uso de `Analysis`, `Optimization`, `Restore`, `Drivers`, `Reporting` e comunicacao com `Agent`.
+`App` depende de contratos de `Core`, casos de uso ja implementados de `Analysis`, `Optimization` e `Restore`, alem de comunicacao com `Agent`. Dependencias de `Drivers`, `Benchmark` e `Reporting` permanecem futuras.
 
-`Agent` executa operacoes privilegiadas chamando `System`, `Optimization`, `Restore`, `Drivers` e `Infrastructure`.
+`Agent` executa operacoes privilegiadas chamando apenas handlers tipados allowlisted. Na Fase 4 implementada ele referencia `Core`, `Infrastructure`, `Optimization` e `System`; chamadas de `Restore`, `Drivers` e outros modulos dependem das fases futuras correspondentes.
 
 `Core` nao depende de Windows, UI, storage, logging concreto ou PowerShell.
 
@@ -179,6 +179,49 @@ Regras de seguranca:
 - GPU virtual/generica em VM nao gera recomendacao de driver grafico fisico por si so;
 - a regra de startup e observacional/experimental quando baseada apenas em contagem agregada.
 
+## Optimization Engine + Safety + Snapshot + Rollback - Fase 4
+
+A Fase 4 implementa a infraestrutura transacional antes do catalogo real de tweaks.
+
+Distribuicao por camadas:
+
+- `Core`: contratos `OptimizationDefinition`, `OperationSpec`, `ExecutionPlan`, `OptimizationSession`, `OperationSnapshot`, policies, IDs e validacao de seguranca de operacao.
+- `Optimization`: catalogo built-in minimo de prova, `ExecutionPlanner`, `ExecutionPlanValidator`, `DryRunService`, `PreflightService`, state machine, session service e recovery foundation.
+- `Restore`: `RestorePointService` modelado e `RollbackEngine` foundation.
+- `System`: handler Windows controlado `BorealIntegrationRegistryOperationHandler` para `HKCU\Software\BorealBoost\IntegrationTest`.
+- `Infrastructure`: persistencia atomica de `OptimizationSession` com envelope versionado e hash SHA-256 de integridade.
+- `Agent`: IPC tipado para validar/capturar/aplicar/verificar/rollback de operacao allowlisted.
+- `App`: paginas `Otimizacao` e `Restauracao` para Review Plan, Dry Run, prova controlada e recovery.
+
+Limites da Fase 4:
+
+- 1 operacao real controlada de integracao em HKCU proprio do BorealBoost;
+- 0 tweaks reais de performance;
+- 0 alteracoes de Services, Power, DNS, Drivers, Windows Update, Defender, Firewall, VBS ou Memory Integrity;
+- catalogo amplo e presets operacionais ficam para Fase 5.
+
+Pipeline implementado:
+
+1. `ExecutionPlanner` cria plano versionado e hash deterministico.
+2. `ExecutionPlanValidator` revalida catalogo, handler, OS/build, dependencias, conflitos, allowlist, OperationSpec canonica e `PlanHash`.
+3. `DryRunService` calcula operacoes e blockers sem modificar Windows.
+4. `PreflightService` bloqueia plano invalido antes de qualquer snapshot/apply.
+5. `OptimizationSessionService` adquire lock cross-process e persiste sessao planejada.
+6. Snapshot com hash por item e journal sao persistidos antes da mutacao.
+7. Handler aplica apenas operacao tipada allowlisted.
+8. Verification e obrigatoria.
+9. Falha aciona rollback quando a policy declara `AttemptRollback`.
+10. Recovery detecta sessoes sem conclusao duravel e artefatos corrompidos, sem permitir que aparecam como `Completed`.
+
+Correcoes de revalidacao da Fase 4:
+
+- rollback Registry preserva existencia, `RegistryValueKind`, valor bruto e `RegistryView` para `String`, `ExpandString`, `DWord`, `QWord`, `MultiString` e `Binary`;
+- `REG_EXPAND_SZ` e capturado sem expandir variaveis;
+- snapshot adulterado e rejeitado por hash e por binding de sessao/plano/operacao;
+- Agent valida `CatalogVersion` e equivalencia exata da OperationSpec contra o catalogo built-in confiavel;
+- `PlanHash` torna plano aprovado imutavel para campos transacionais;
+- lock cross-process impede sessoes simultaneas entre duas instancias do App.
+
 ## Contrato arquitetural do BorealBoost.Agent
 
 `BorealBoost.Agent` e requisito arquitetural da V1. O aplicativo inteiro elevado nao e fallback aceito. A UI deve permanecer sem privilegio permanente; toda operacao administrativa passa pelo Agent elevado e pelo ExecutionPlan validado.
@@ -287,6 +330,16 @@ Tipos iniciais:
 - `OperationResult`;
 - `SessionStatusRequest` / `SessionStatusResponse`;
 - `ShutdownRequest`.
+
+Na implementacao da Fase 4, o prototipo IPC operacional usa mensagens tipadas equivalentes por operacao:
+
+- `ValidateOperationRequest` / `ValidateOperationResponse`;
+- `CaptureSnapshotRequest` / `CaptureSnapshotResponse`;
+- `ExecuteOperationRequest` / `ExecuteOperationResponse`;
+- `VerifyOperationRequest` / `VerifyOperationResponse`;
+- `RollbackOperationRequest` / `RollbackOperationResponse`.
+
+Essas mensagens carregam `OperationSpec` tipado e `OperationSnapshotItem`, nunca command line, shell, script ou executable path fornecido pela UI.
 
 ### Versionamento do protocolo
 

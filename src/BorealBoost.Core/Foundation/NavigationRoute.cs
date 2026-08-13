@@ -11,12 +11,12 @@ public sealed record NavigationRoute(
         new("Dashboard", "Dashboard", "Status inicial da aplicacao.", true),
         new("Scanner", "Scanner", "Inventario read-only da maquina.", true),
         new("Analysis", "Analise", "Analysis + Recommendation Engine read-only.", true),
-        new("Optimization", "Otimizacao", "Placeholder da Fase 4.", false),
+        new("Optimization", "Otimizacao", "Review Plan e Dry Run da Fase 4.", true),
         new("Drivers", "Drivers", "Placeholder da Fase 6.", false),
         new("Custom", "Personalizado", "Placeholder de selecao futura.", false),
         new("Tools", "Ferramentas", "Placeholder de atalhos futuros.", false),
         new("Results", "Resultados", "Placeholder de relatorios futuros.", false),
-        new("Restore", "Restauracao", "Placeholder da Fase 4.", false),
+        new("Restore", "Restauracao", "Foundation de recovery e rollback da Fase 4.", true),
         new("Logs", "Logs", "Placeholder de observabilidade.", false),
         new("Settings", "Configuracoes", "Placeholder de preferencias.", false)
     ];

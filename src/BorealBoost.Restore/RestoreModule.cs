@@ -4,5 +4,6 @@ public static class RestoreModule
 {
     public const string Name = "Restore";
     public const string Phase = "Fase 4";
-    public const bool IsOperationalInFoundation = false;
+    public const bool HasRollbackFoundation = true;
+    public const bool CreatesRealRestorePointsInPhase4 = false;
 }

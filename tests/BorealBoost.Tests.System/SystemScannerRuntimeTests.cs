@@ -5,7 +5,15 @@ using BorealBoost.Core.Analysis;
 using BorealBoost.Analysis.SystemScanner;
 using BorealBoost.Core.AgentProtocol;
 using BorealBoost.Core.Foundation;
+using BorealBoost.Core.Optimization;
 using BorealBoost.Core.Scanner;
+using BorealBoost.Infrastructure.Persistence;
+using BorealBoost.Optimization.Catalog;
+using BorealBoost.Optimization.Execution;
+using BorealBoost.Optimization.Handlers;
+using BorealBoost.Optimization.Planning;
+using BorealBoost.Restore;
+using BorealBoost.System.Operations;
 using BorealBoost.System.Registry;
 using BorealBoost.System.Scanner;
 using BorealBoost.System.Wmi;
@@ -106,6 +114,62 @@ public sealed class SystemScannerRuntimeTests
     }
 
     [Fact]
+    public async Task Real_scanner_analysis_flows_into_optimization_dry_run_and_controlled_rollback()
+    {
+        using var registryScope = ControlledRegistryTestScope.Acquire();
+        var backup = RegistryBackup.Capture();
+        var sessionDirectory = Path.Combine(Path.GetTempPath(), "BorealBoostPhase4System", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(sessionDirectory);
+        try
+        {
+            var scanner = CreateScanner();
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(75));
+            var scanResult = await scanner.ScanAsync(null, timeout.Token);
+            Assert.True(scanResult.IsSuccess, scanResult.ErrorMessage);
+
+            var analysisResult = await CreateAnalysisEngine().AnalyzeAsync(scanResult.Value!, CancellationToken.None);
+            Assert.True(analysisResult.IsSuccess, analysisResult.ErrorMessage);
+
+            var services = CreateOptimizationServices(sessionDirectory);
+            var dryRun = await services.DryRun.DryRunAsync(
+                scanResult.Value!,
+                analysisResult.Value!,
+                [BuiltInOptimizationCatalog.IntegrationProofOptimizationId],
+                CancellationToken.None);
+
+            Assert.True(dryRun.IsSuccess, dryRun.ErrorMessage);
+            Assert.True(dryRun.Value!.Validation.CanExecute);
+            Assert.Single(dryRun.Value.Operations);
+
+            var executed = await services.SessionService.ExecuteAsync(dryRun.Value.Plan, scanResult.Value!, CancellationToken.None);
+            Assert.True(executed.IsSuccess, executed.ErrorMessage);
+            Assert.True(executed.Value!.State is OptimizationSessionState.Completed or OptimizationSessionState.CompletedWithWarnings);
+            Assert.NotNull(executed.Value.Snapshot);
+            Assert.Contains(executed.Value.Journal, entry => entry.State == OperationJournalState.SnapshotCaptured);
+            Assert.Contains(executed.Value.Journal, entry => entry.State == OperationJournalState.Verified);
+
+            var rollback = await services.SessionService.RollbackAsync(executed.Value.SessionId, CancellationToken.None);
+            Assert.True(rollback.IsSuccess, rollback.ErrorMessage);
+            Assert.Equal(OptimizationSessionState.RolledBack, rollback.Value!.State);
+            backup.AssertRestored();
+
+            _output.WriteLine($"Phase4PlanOperations={dryRun.Value.Plan.OrderedOperations.Count}");
+            _output.WriteLine($"Phase4DryRunBlockers={dryRun.Value.Blockers.Count}");
+            _output.WriteLine($"Phase4SessionState={executed.Value.State}");
+            _output.WriteLine($"Phase4RollbackState={rollback.Value.State}");
+            _output.WriteLine($"Phase4JournalEntries={rollback.Value.Journal.Count}");
+        }
+        finally
+        {
+            backup.Restore();
+            if (Directory.Exists(sessionDirectory))
+            {
+                Directory.Delete(sessionDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task Full_system_scanner_runs_ten_sequential_scans_without_resource_growth()
     {
         var durations = new List<TimeSpan>();
@@ -197,6 +261,26 @@ public sealed class SystemScannerRuntimeTests
         return new AnalysisEngine(rules, new NoopLogger<AnalysisEngine>());
     }
 
+    private static OptimizationServices CreateOptimizationServices(string sessionDirectory)
+    {
+        var catalog = new BuiltInOptimizationCatalog();
+        var definitionValidator = new OptimizationDefinitionValidator();
+        var handlerRegistry = new OperationHandlerRegistry([new BorealIntegrationRegistryOperationHandler()]);
+        var planner = new ExecutionPlanner(catalog, definitionValidator);
+        var validator = new ExecutionPlanValidator(catalog, handlerRegistry);
+        var preflight = new PreflightService(validator, handlerRegistry);
+        var dryRun = new DryRunService(planner, validator, handlerRegistry);
+        var store = new FileOptimizationSessionStore(sessionDirectory);
+        var sessionService = new OptimizationSessionService(
+            preflight,
+            handlerRegistry,
+            store,
+            new RestorePointService(),
+            new NoopLogger<OptimizationSessionService>(),
+            new CrossProcessOptimizationSessionLock(Path.Combine(sessionDirectory, "optimization.lock")));
+        return new OptimizationServices(dryRun, sessionService);
+    }
+
     private static int RiskCount(AnalysisResult result, RecommendationRiskLevel risk)
     {
         return result.Summary.RiskDistribution.TryGetValue(risk, out var count) ? count : 0;
@@ -209,6 +293,95 @@ public sealed class SystemScannerRuntimeTests
         public void Report(ScanProgressUpdate value)
         {
             Updates.Add(value);
+        }
+    }
+
+    private sealed record OptimizationServices(
+        IDryRunService DryRun,
+        IOptimizationSessionService SessionService);
+
+    private sealed class RegistryBackup
+    {
+        private readonly bool _existed;
+        private readonly Microsoft.Win32.RegistryValueKind? _kind;
+        private readonly object? _value;
+
+        private RegistryBackup(bool existed, Microsoft.Win32.RegistryValueKind? kind, object? value)
+        {
+            _existed = existed;
+            _kind = kind;
+            _value = value;
+        }
+
+        public static RegistryBackup Capture()
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(AgentOperationSecurityValidator.IntegrationTestKeyPath, writable: false);
+            if (key is null || !key.GetValueNames().Contains(AgentOperationSecurityValidator.IntegrationTestValueName, StringComparer.Ordinal))
+            {
+                return new RegistryBackup(false, null, null);
+            }
+
+            return new RegistryBackup(
+                true,
+                key.GetValueKind(AgentOperationSecurityValidator.IntegrationTestValueName),
+                ReadRawValue(
+                    key,
+                    AgentOperationSecurityValidator.IntegrationTestValueName,
+                    key.GetValueKind(AgentOperationSecurityValidator.IntegrationTestValueName)));
+        }
+
+        public void AssertRestored()
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(AgentOperationSecurityValidator.IntegrationTestKeyPath, writable: false);
+            if (!_existed)
+            {
+                Assert.True(key is null || !key.GetValueNames().Contains(AgentOperationSecurityValidator.IntegrationTestValueName, StringComparer.Ordinal));
+                return;
+            }
+
+            Assert.NotNull(key);
+            Assert.Equal(_kind, key!.GetValueKind(AgentOperationSecurityValidator.IntegrationTestValueName));
+            AssertRegistryValuesEqual(_value, ReadRawValue(key, AgentOperationSecurityValidator.IntegrationTestValueName, _kind!.Value));
+        }
+
+        public void Restore()
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(AgentOperationSecurityValidator.IntegrationTestKeyPath, writable: true);
+            if (!_existed)
+            {
+                key?.DeleteValue(AgentOperationSecurityValidator.IntegrationTestValueName, throwOnMissingValue: false);
+                return;
+            }
+
+            if (key is not null && _kind is not null)
+            {
+                key.SetValue(AgentOperationSecurityValidator.IntegrationTestValueName, _value ?? string.Empty, _kind.Value);
+            }
+        }
+
+        private static object? ReadRawValue(Microsoft.Win32.RegistryKey key, string valueName, Microsoft.Win32.RegistryValueKind kind)
+        {
+            return kind == Microsoft.Win32.RegistryValueKind.ExpandString
+                ? key.GetValue(valueName, null, Microsoft.Win32.RegistryValueOptions.DoNotExpandEnvironmentNames)
+                : key.GetValue(valueName);
+        }
+
+        private static void AssertRegistryValuesEqual(object? expected, object? actual)
+        {
+            switch (expected)
+            {
+                case byte[] expectedBytes:
+                    Assert.IsType<byte[]>(actual);
+                    Assert.Equal(expectedBytes, (byte[])actual);
+                    break;
+                case string[] expectedStrings:
+                    Assert.IsType<string[]>(actual);
+                    Assert.Equal(expectedStrings, (string[])actual);
+                    break;
+                default:
+                    Assert.Equal(expected, actual);
+                    break;
+            }
         }
     }
 
