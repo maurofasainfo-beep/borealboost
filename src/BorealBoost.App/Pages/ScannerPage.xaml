@@ -1,0 +1,150 @@
+<Page
+    x:Class="BorealBoost.App.Pages.ScannerPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Background="{StaticResource BorealBackgroundBrush}" Padding="32">
+        <ScrollViewer>
+            <StackPanel Spacing="24" MaxWidth="1120">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Scanner" Style="{StaticResource BorealDisplayTextBlockStyle}" />
+                    <TextBlock Text="Inventario somente leitura do computador atual." Style="{StaticResource BorealBodyTextBlockStyle}" />
+                </StackPanel>
+
+                <Border Style="{StaticResource BorealCardBorderStyle}">
+                    <StackPanel Margin="24" Spacing="14">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Content="Analisar computador" Click="OnStartScanClick" IsEnabled="{Binding CanStartScan}" />
+                            <Button Grid.Column="1" Content="Cancelar" Click="OnCancelScanClick" IsEnabled="{Binding CanCancelScan}" />
+                            <TextBlock Grid.Column="2" Text="{Binding StatusText}" Style="{StaticResource BorealBodyTextBlockStyle}" VerticalAlignment="Center" />
+                        </Grid>
+
+                        <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent}" />
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding ProgressText}" Foreground="{StaticResource BorealPrimaryBrush}" FontSize="22" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="1" Text="{Binding CurrentStage}" Style="{StaticResource BorealBodyTextBlockStyle}" VerticalAlignment="Center" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Grid ColumnSpacing="16" RowSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Column="0" Grid.Row="0" Style="{StaticResource BorealCardBorderStyle}">
+                        <StackPanel Margin="18" Spacing="8">
+                            <TextBlock Text="Sistema" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                            <TextBlock Text="{Binding WindowsSummary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Grid.Row="0" Style="{StaticResource BorealCardBorderStyle}">
+                        <StackPanel Margin="18" Spacing="8">
+                            <TextBlock Text="CPU" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                            <TextBlock Text="{Binding CpuSummary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Grid.Row="0" Style="{StaticResource BorealCardBorderStyle}">
+                        <StackPanel Margin="18" Spacing="8">
+                            <TextBlock Text="GPU" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                            <TextBlock Text="{Binding GpuSummary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="0" Grid.Row="1" Style="{StaticResource BorealCardBorderStyle}">
+                        <StackPanel Margin="18" Spacing="8">
+                            <TextBlock Text="Memoria" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                            <TextBlock Text="{Binding MemorySummary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1" Grid.Row="1" Style="{StaticResource BorealCardBorderStyle}">
+                        <StackPanel Margin="18" Spacing="8">
+                            <TextBlock Text="Storage" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                            <TextBlock Text="{Binding StorageSummary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Grid.Row="1" Style="{StaticResource BorealCardBorderStyle}">
+                        <StackPanel Margin="18" Spacing="8">
+                            <TextBlock Text="Dispositivos" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                            <TextBlock Text="{Binding DevicesSummary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="0" Grid.Row="2" Style="{StaticResource BorealCardBorderStyle}">
+                        <StackPanel Margin="18" Spacing="8">
+                            <TextBlock Text="Monitores" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                            <TextBlock Text="{Binding DisplaysSummary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Grid.Row="2" Style="{StaticResource BorealCardBorderStyle}">
+                        <StackPanel Margin="18" Spacing="8">
+                            <TextBlock Text="Rede" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                            <TextBlock Text="{Binding NetworkSummary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Grid.Row="2" Style="{StaticResource BorealCardBorderStyle}">
+                        <StackPanel Margin="18" Spacing="8">
+                            <TextBlock Text="Servicos" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                            <TextBlock Text="{Binding ServicesSummary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="0" Grid.Row="3" Style="{StaticResource BorealCardBorderStyle}">
+                        <StackPanel Margin="18" Spacing="8">
+                            <TextBlock Text="Processos" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                            <TextBlock Text="{Binding ProcessesSummary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Grid.Row="3" Style="{StaticResource BorealCardBorderStyle}">
+                        <StackPanel Margin="18" Spacing="8">
+                            <TextBlock Text="Inicializacao" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                            <TextBlock Text="{Binding StartupSummary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Border Style="{StaticResource BorealCardBorderStyle}">
+                    <StackPanel Margin="24" Spacing="12">
+                        <TextBlock Text="Resultado tecnico" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                        <TextBlock Text="{Binding PartialScanSummary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        <TextBlock Text="{Binding ProviderSummary}" Foreground="{StaticResource BorealTextPrimaryBrush}" FontSize="15" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding DurationSummary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        <ListView ItemsSource="{Binding ProviderResults}" MaxHeight="240">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Padding="0,6" ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="2*" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="2*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding ProviderName}" Foreground="{StaticResource BorealTextPrimaryBrush}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Status}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Duration}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                                        <TextBlock Grid.Column="3" Text="{Binding ErrorCode}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

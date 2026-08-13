@@ -13,11 +13,12 @@ public sealed class ArchitectureDependencyTests
     }
 
     [Fact]
-    public void App_references_only_foundation_dependencies_in_phase_1()
+    public void App_references_only_allowed_scanner_dependencies_in_phase_2()
     {
         var project = LoadProject("src", "BorealBoost.App", "BorealBoost.App.csproj");
         var refs = ProjectReferences(project).ToArray();
 
+        Assert.Contains(@"..\BorealBoost.Analysis\BorealBoost.Analysis.csproj", refs);
         Assert.Contains(@"..\BorealBoost.Core\BorealBoost.Core.csproj", refs);
         Assert.Contains(@"..\BorealBoost.Infrastructure\BorealBoost.Infrastructure.csproj", refs);
         Assert.Contains(@"..\BorealBoost.System\BorealBoost.System.csproj", refs);
@@ -31,7 +32,6 @@ public sealed class ArchitectureDependencyTests
     {
         var modules = new[]
         {
-            "BorealBoost.Analysis",
             "BorealBoost.Optimization",
             "BorealBoost.Restore",
             "BorealBoost.Benchmark",
@@ -47,6 +47,16 @@ public sealed class ArchitectureDependencyTests
             Assert.Single(refs);
             Assert.Equal(@"..\BorealBoost.Core\BorealBoost.Core.csproj", refs[0]);
         }
+    }
+
+    [Fact]
+    public void Analysis_project_remains_pure_and_depends_on_core_only()
+    {
+        var project = LoadProject("src", "BorealBoost.Analysis", "BorealBoost.Analysis.csproj");
+        var refs = ProjectReferences(project).ToArray();
+
+        Assert.Single(refs);
+        Assert.Equal(@"..\BorealBoost.Core\BorealBoost.Core.csproj", refs[0]);
     }
 
     private static XDocument LoadProject(params string[] pathParts)

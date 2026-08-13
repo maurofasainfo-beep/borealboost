@@ -15,6 +15,7 @@
 
             <NavigationView.MenuItems>
                 <NavigationViewItem Content="Dashboard" Tag="Dashboard" />
+                <NavigationViewItem Content="Scanner" Tag="Scanner" />
                 <NavigationViewItem Content="Analise" Tag="Analysis" />
                 <NavigationViewItem Content="Otimizacao" Tag="Optimization" />
                 <NavigationViewItem Content="Drivers" Tag="Drivers" />

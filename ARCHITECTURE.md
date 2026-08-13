@@ -1,7 +1,7 @@
 # BorealBoost - Architecture
 
 Data: 2026-08-12
-Status: arquitetura proposta para aprovacao. Nenhum codigo foi criado.
+Status: arquitetura aprovada; Fase 1 Foundation e Fase 2 System Scanner implementadas.
 
 ## Visao geral
 
@@ -56,7 +56,7 @@ A UI nunca deve conter logica de tweak. Ela orquestra casos de uso e apresenta e
 1. App inicia.
 2. App carrega configuracao, tema, historico e estado de admin.
 3. Tecnico informa cliente e tipo de uso.
-4. Scanner coleta SystemProfile.
+4. Scanner coleta `SystemSnapshot` read-only.
 5. Analysis gera findings, oportunidades e recomendacoes.
 6. PresetEngine monta selecao candidata.
 7. CompatibilityEngine marca cada item como Recommended, Optional, NotRecommended ou Incompatible.
@@ -70,6 +70,62 @@ A UI nunca deve conter logica de tweak. Ela orquestra casos de uso e apresenta e
 15. Benchmark pos-execucao e comparacao.
 16. Reporting gera HTML/PDF.
 17. Restore screen permite rollback.
+
+## System Scanner - Fase 2
+
+O Scanner e o primeiro modulo operacional apos a Foundation. Ele e somente leitura e nao usa o Agent para dados que o processo do usuario consegue obter com APIs normais.
+
+Distribuicao por camadas:
+
+- `Core`: contratos e modelo normalizado `SystemSnapshot`, `ProviderResult`, `ISystemScanner`, `ISystemScanProvider` e classificadores puros.
+- `System`: adapters Windows read-only para WMI/CIM, Win32, Registry read-only, `DriveInfo` e `NetworkInterface`.
+- `Analysis`: orquestrador `SystemScanner`, `SystemScanSessionService` singleton, progresso ponderado, timeout/cancelamento e cache em memoria do ultimo snapshot.
+- `App`: pagina `Scanner` e Dashboard consumindo fatos reais do snapshot.
+
+Providers V1 da Fase 2:
+
+- OperatingSystem;
+- Cpu;
+- Graphics;
+- Memory;
+- Storage;
+- Hardware/Firmware;
+- Displays;
+- Network;
+- Devices;
+- Drivers;
+- Power;
+- Services;
+- Processes;
+- Startup;
+- SecurityCapabilities.
+
+O resultado de um provider pode ser `Success`, `Partial`, `Failed`, `NotSupported`, `TimedOut` ou `Canceled`. Falha isolada nao derruba o scan inteiro; o snapshot fica `PartialScan=true` e conserva os fatos ja coletados.
+
+O scanner aceita uma unica sessao ativa por vez. `SystemScanSessionService` rejeita starts concorrentes com `scanner.already_running`, inclusive quando a pagina Scanner e recriada por navegacao.
+
+WMI/CIM e executado sem `Task.Run`/`WaitAsync` no adapter. A operacao usa `EnumerationOptions.Timeout` e a sessao nao e marcada como cancelada/concluida enquanto a chamada WMI nativa ainda nao retornou. Quando o provider ignora cancellation e retorna depois do timeout, o resultado e `TimedOut` e o patch nao e usado.
+
+Memoria separa `InstalledPhysicalBytes` de `VisiblePhysicalBytes`. VRAM usa `AdapterRamStatus`; `Win32_VideoController.AdapterRAM` sozinho nao e aceito como VRAM conhecida.
+
+Privacidade do snapshot e formalizada por `SystemSnapshotPrivacyPolicy`, que classifica campos tecnicos internos e fornece copia sanitizada para relatorios futuros.
+
+Fontes permitidas nesta fase:
+
+- WMI/CIM encapsulado via `System.Management`;
+- Win32 APIs read-only;
+- .NET BCL para rede e volumes;
+- Registry somente leitura quando houver justificativa tecnica.
+
+Proibido no scanner:
+
+- executar PowerShell/cmd;
+- iniciar processos externos;
+- consultar ou instalar drivers;
+- escrever Registry;
+- alterar servicos, power plan, DNS, Windows Update, AppX, Defender, Firewall, features ou firmware;
+- calcular Boreal Score;
+- gerar recomendacoes.
 
 ## Contrato arquitetural do BorealBoost.Agent
 

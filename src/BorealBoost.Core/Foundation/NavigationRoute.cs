@@ -9,7 +9,8 @@ public sealed record NavigationRoute(
     public static IReadOnlyList<NavigationRoute> FoundationRoutes { get; } =
     [
         new("Dashboard", "Dashboard", "Status inicial da aplicacao.", true),
-        new("Analysis", "Analise", "Placeholder da Fase 2/3.", false),
+        new("Scanner", "Scanner", "Inventario read-only da maquina.", true),
+        new("Analysis", "Analise", "Placeholder da Fase 3.", false),
         new("Optimization", "Otimizacao", "Placeholder da Fase 4+.", false),
         new("Drivers", "Drivers", "Placeholder da Fase 7.", false),
         new("Custom", "Personalizado", "Placeholder de selecao futura.", false),

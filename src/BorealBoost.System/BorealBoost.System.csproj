@@ -2,9 +2,12 @@
   <PropertyGroup>
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
-    <Description>Safe Windows foundation adapters. No scanner or tweak operations in Phase 1.</Description>
+    <Description>Safe read-only Windows adapters for Foundation and System Scanner.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\BorealBoost.Core\BorealBoost.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Management" />
   </ItemGroup>
 </Project>

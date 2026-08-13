@@ -121,6 +121,8 @@ Validacao:
 - logs sem secrets;
 - UI nao trava.
 
+Status atual: implementado e revalidado na Fase 2 como scanner read-only modular. A correcao pos-auditoria adicionou sessao unica de scan, WMI sem tarefas abandonadas por timeout, VRAM conservadora, memoria instalada/visivel separada, capabilities de seguranca read-only e politica explicita de redaction. Validacao local real feita na maquina disponivel; Windows 10 22H2 e matriz completa de VMs permanecem pendentes.
+
 ## Fase 3 - Analysis e Recommendations
 
 Objetivo:

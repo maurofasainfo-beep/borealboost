@@ -1,7 +1,7 @@
 # BorealBoost - Architecture Decision Record
 
 Data: 2026-08-12
-Status: Proposto para aprovacao
+Status: aprovado e atualizado ate a Fase 2
 
 ## ADR-001 - Stack de aplicacao desktop
 
@@ -249,3 +249,46 @@ App e Agent sao processos distintos e podem emitir logs simultaneamente durante 
 - Falhas de logging usam fallback controlado.
 - Correlacao entre arquivos deve usar `sessionId`, `correlationId` e timestamp quando o fluxo envolver IPC.
 - Um sink centralizado pode ser reavaliado em fase futura sem alterar o contrato de seguranca do Agent.
+
+## ADR-013 - Scanner read-only modular
+
+### Decisao
+
+Implementar a Fase 2 como `SystemScanner` modular, somente leitura, com modelo `SystemSnapshot` em `Core`, providers Windows em `System`, orquestracao em `Analysis` e apresentacao na pagina `Scanner` do App.
+
+### Justificativa
+
+O Scanner e insumo para Analysis, Recommendations, Drivers, Benchmark, Rollback e Reporting. Ele deve coletar fatos reais sem misturar interpretacao ou apply. WMI/CIM e Registry read-only sao permitidos pela arquitetura quando encapsulados e justificados; PowerShell/cmd e execucao externa nao sao usados.
+
+### Implicacoes
+
+- Provider falho gera `PartialScan`, nao crash do scan completo.
+- Progresso da UI e ponderado por providers reais.
+- Timeout e cancelamento sao parte do contrato.
+- `Unknown`/`null` e preferivel a informacao inventada.
+- O Agent nao e usado para coleta comum da Fase 2.
+- Boreal Score, Recommendation Engine, Optimization Engine operacional e Driver Engine operacional permanecem fora da Fase 2.
+
+## ADR-014 - Revalidacao do Scanner apos auditoria
+
+### Decisao
+
+Corrigir a Fase 2 mantendo o scanner somente leitura, com quatro contratos adicionais:
+
+- WMI/CIM nao pode usar `Task.Run`/`WaitAsync` de forma que uma chamada nativa continue abandonada apos timeout/cancelamento;
+- a UI deve iniciar scans por `SystemScanSessionService` singleton, com single-flight global e estados `Idle`, `Running`, `Cancelling`, `Completed`, `Failed` e `Cancelled`;
+- VRAM reportada por `Win32_VideoController.AdapterRAM` nao e tratada como valor conhecido; quando nao houver fonte confiavel, `AdapterRamBytes=null` e `AdapterRamStatus=Unknown`;
+- snapshots e relatorios futuros devem respeitar `SystemSnapshotPrivacyPolicy`.
+
+### Justificativa
+
+A auditoria da Fase 2 aprovou o Scanner com correcoes. Os achados de maior risco estavam ligados a confiabilidade operacional do scanner e qualidade dos fatos coletados. Fases posteriores nao podem consumir dados potencialmente falsos como base de recommendation, driver planning ou optimization planning.
+
+### Implicacoes
+
+- Timeout de provider representa estado real: o scanner so avanca depois que o provider retorna, observa cancellation ou falha.
+- Cancelamento de WMI pode aguardar o timeout nativo da chamada atual, mas nao deixa tarefas orfas nem excecoes nao observadas.
+- Dois scans simultaneos sao rejeitados, inclusive apos navegacao/recriacao da pagina.
+- Memoria instalada e memoria visivel pelo Windows sao fatos diferentes no dominio.
+- Capabilities de seguranca read-only podem ser `Known`, `Unknown`, `NotSupported` ou `Deferred`; `Deferred` nao e recomendacao.
+- Defender, Firewall e BitLocker permanecem diferidos na Fase 2.

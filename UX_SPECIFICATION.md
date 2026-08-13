@@ -98,6 +98,17 @@ Mostra scan em andamento por etapas reais:
 
 Nao usar porcentagem falsa. Barra pode representar etapas concluidas.
 
+Status da Fase 2:
+
+- pagina Scanner funcional;
+- botao "Analisar computador";
+- progresso ponderado por providers reais;
+- cancelamento;
+- cards factuais de Sistema, CPU, GPU, Memoria, Storage, Dispositivos, Monitores e Rede;
+- resultado tecnico por provider.
+
+Ainda nao ha findings, recommendations, Boreal Score ou benchmarks nesta tela.
+
 ## Analise
 
 Conteudo:
@@ -297,4 +308,3 @@ V1:
 - Receber imagens de referencia citadas no Master Spec.
 - Definir fonte/tipografia final.
 - Prototipar telas antes da Fase 1 visual final.
-

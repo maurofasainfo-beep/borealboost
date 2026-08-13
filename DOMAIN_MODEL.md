@@ -1,7 +1,7 @@
 # BorealBoost - Domain Model
 
 Data: 2026-08-12
-Status: modelo conceitual. Nenhum codigo foi implementado.
+Status: modelo conceitual com contratos implementados para Foundation e System Scanner.
 
 ## Agregados principais
 
@@ -28,7 +28,7 @@ UsageProfile:
 - General;
 - LowEndPC.
 
-### SystemProfile
+### SystemProfile / SystemSnapshot
 
 Snapshot de leitura da maquina em um momento.
 
@@ -49,6 +49,56 @@ Composto por:
 - StartupInventory;
 - DriverInventory;
 - PendingRebootInfo.
+
+Na Fase 2, o modelo implementado recebe o nome `SystemSnapshot` e representa somente fatos detectados. `SystemSnapshot` nao contem recommendations, Boreal Score, benchmarks nem plano de otimizacao.
+
+Campos implementados:
+
+- `ScanMetadata`;
+- `OperatingSystem`;
+- `Hardware`;
+- `Processors`;
+- `Graphics`;
+- `Memory`;
+- `Storage`;
+- `Motherboard`;
+- `Firmware`;
+- `Devices`;
+- `Drivers`;
+- `Network`;
+- `Displays`;
+- `Power`;
+- `Services`;
+- `Processes`;
+- `StartupItems`;
+- `Capabilities`.
+
+`ScanMetadata` contem `ScanId`, inicio/fim UTC, duracao, versao do app, schema, arquitetura da maquina, resultados por provider, `PartialScan`, warnings e errors.
+
+Campos de memoria da Fase 2:
+
+- `InstalledPhysicalBytes`: soma dos modulos fisicos quando todos reportam capacidade;
+- `VisiblePhysicalBytes`: memoria fisica visivel/utilizavel pelo Windows.
+
+Campos de GPU da Fase 2:
+
+- `AdapterRamBytes`;
+- `AdapterRamStatus`: `Known`, `Estimated` ou `Unknown`.
+
+Regra: `Win32_VideoController.AdapterRAM` sozinho nao torna VRAM conhecida.
+
+Capabilities possuem `DetectionStatus`: `Known`, `Unknown`, `Unavailable`, `NotSupported` ou `Deferred`.
+
+`SystemScanSessionService` controla uma unica sessao ativa por vez com estados `Idle`, `Running`, `Cancelling`, `Completed`, `Failed` e `Cancelled`.
+
+Regras da Fase 2:
+
+- `Unknown`/`null` e estado valido quando a fonte nao e confiavel ou nao esta disponivel.
+- Provider falho nao invalida necessariamente o snapshot completo.
+- Provider nao suportado ou timed out torna o snapshot parcial.
+- Snapshot cancelado pelo usuario nao deve ser apresentado como concluido.
+- Device/driver facts podem conter Device Instance ID, Hardware IDs e Compatible IDs porque sustentam o Driver Engine futuro; serial numbers, MAC, SSID, product key e machine GUID ficam fora do modelo.
+- `SystemSnapshotPrivacyPolicy` define quais campos sao publicos, internos, sensiveis, nao persistiveis ou nao reportaveis. Relatorios futuros devem usar snapshot sanitizado.
 
 ### Finding
 

@@ -69,6 +69,17 @@ Consequencia:
 - relatorios devem distinguir "sistema suportado pelo BorealBoost" de "estado de suporte Microsoft";
 - otimizacoes validas em Windows 11 nao sao herdadas automaticamente por Windows 10.
 
+## Classificacao do Scanner - Fase 2
+
+O System Scanner implementa classificacao funcional inicial:
+
+- `LegacySupported`: Windows 10 22H2 x64/build 19045 ou superior dentro da familia Windows 10 suportada funcionalmente pela V1.
+- `Supported`: Windows 11 x64 em build V1 conhecido e validado conceitualmente.
+- `Unsupported`: arquitetura fora de x64 ou build abaixo do alvo minimo.
+- `Unknown`: familia/build nao identificada ou build novo que ainda requer validacao explicita.
+
+Essa classificacao nao afirma estado de suporte Microsoft. Ela informa se o BorealBoost reconhece o sistema como alvo funcional para diagnostico e fases futuras.
+
 ## Windows 11
 
 Versoes atuais observadas em 2026-08-12 na pagina oficial Microsoft:

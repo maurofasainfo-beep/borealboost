@@ -9,9 +9,10 @@
     <WindowsPackageType>None</WindowsPackageType>
     <EnableMsixTooling>false</EnableMsixTooling>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Description>WinUI 3 desktop shell for BorealBoost Foundation.</Description>
+    <Description>WinUI 3 desktop shell for BorealBoost Foundation and System Scanner.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\BorealBoost.Analysis\BorealBoost.Analysis.csproj" />
     <ProjectReference Include="..\BorealBoost.Core\BorealBoost.Core.csproj" />
     <ProjectReference Include="..\BorealBoost.Infrastructure\BorealBoost.Infrastructure.csproj" />
     <ProjectReference Include="..\BorealBoost.System\BorealBoost.System.csproj" />

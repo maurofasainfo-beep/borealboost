@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Description>Benchmark module boundary. No benchmark implementation in Phase 1.</Description>
+    <Description>Benchmark module boundary. No benchmark implementation is operational.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\BorealBoost.Core\BorealBoost.Core.csproj" />

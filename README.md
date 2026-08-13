@@ -4,19 +4,20 @@ BorealBoost e uma aplicacao desktop Windows para diagnostico, otimizacao planeja
 
 ## Estado Atual
 
-Fase atual: **Fase 1 - Foundation**.
+Fase atual: **Fase 2 - System Scanner**.
 
-Esta fase entrega somente a base tecnica:
+As bases da Fase 1 foram preservadas e a Fase 2 adiciona scanner somente leitura:
 
 - solution .NET;
 - projetos principais;
 - shell WinUI 3;
-- sidebar e paginas placeholder;
+- sidebar, Dashboard e pagina Scanner funcional;
 - DI, configuracao, logging e paths;
 - status administrativo real;
 - contratos fundamentais de dominio;
 - foundation do `BorealBoost.Agent` com IPC local tipado por named pipe;
-- testes basicos.
+- scanner modular de OS, CPU, GPU, RAM, storage, motherboard/firmware, displays, network, devices, drivers, power, services, processes e startup;
+- testes unitarios, integracao e system tests.
 
 Ainda nao existem otimizacoes reais. O projeto nao altera Registry, Services, Power, DNS, Drivers, Windows Update, Defender, Firewall, VBS ou Memory Integrity.
 
@@ -70,11 +71,25 @@ Projetos da Foundation:
 
 - `BorealBoost.App`: shell WinUI 3, navigation, views, viewmodels e tema base.
 - `BorealBoost.Agent`: processo de Agent foundation, sem handlers privilegiados.
-- `BorealBoost.Core`: contratos, resultados, IDs fortes, protocolo App-Agent e tipos puros.
+- `BorealBoost.Core`: contratos, resultados, IDs fortes, protocolo App-Agent, scanner e tipos puros.
 - `BorealBoost.Infrastructure`: paths, configuracao, application info, IPC foundation e logging JSONL.
-- `BorealBoost.System`: leitura segura de status administrativo e informacoes basicas do OS.
-- `BorealBoost.Analysis`, `Optimization`, `Restore`, `Benchmark`, `Drivers`, `Reporting`: fronteiras de modulo sem implementacao operacional nesta fase.
+- `BorealBoost.System`: adapters Windows read-only para Foundation e Scanner.
+- `BorealBoost.Analysis`: orquestracao do System Scanner e snapshot em memoria; sem Recommendation Engine.
+- `BorealBoost.Optimization`, `Restore`, `Benchmark`, `Drivers`, `Reporting`: fronteiras de modulo sem implementacao operacional nesta fase.
 - `BorealBoost.Tests.*`: validacao de contratos, dependencias e fronteiras de seguranca.
+
+## System Scanner
+
+A pagina `Scanner` executa uma analise read-only do computador, com progresso por provider e cancelamento. O resultado gera `SystemSnapshot` em memoria contendo fatos detectados e resultados por provider.
+
+Fontes usadas:
+
+- WMI/CIM encapsulado via `System.Management`;
+- APIs .NET (`DriveInfo`, `NetworkInterface`, `Process.GetProcesses`);
+- Win32 read-only para monitores, firmware type e power status;
+- Registry read-only apenas para dados de versao, Secure Boot, power scheme e nomes de startup.
+
+O scanner nao usa PowerShell/cmd, nao executa benchmark, nao busca drivers na internet e nao altera o sistema.
 
 ## Agent
 
@@ -102,4 +117,4 @@ Paths futuros para configuracao, sessoes, snapshots e relatorios ja estao centra
 
 ## Aviso de Escopo
 
-Scanner completo pertence a Fase 2. Analysis/Recommendation pertence a Fase 3. Optimization Engine operacional pertence a Fase 4. Safety/Rollback operacional pertence a Fase 5. Tweaks reais pertencem a Fase 6 ou posterior.
+Analysis/Recommendation pertence a Fase 3. Optimization Engine operacional pertence a Fase 4. Safety/Rollback operacional pertence a Fase 5. Tweaks reais pertencem a Fase 6 ou posterior.

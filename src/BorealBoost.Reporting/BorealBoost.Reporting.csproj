@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Description>Reporting module boundary. No report export implementation in Phase 1.</Description>
+    <Description>Reporting module boundary. No report export implementation is operational.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\BorealBoost.Core\BorealBoost.Core.csproj" />

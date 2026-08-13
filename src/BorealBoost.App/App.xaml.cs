@@ -1,13 +1,18 @@
 using System.Diagnostics;
+using BorealBoost.Analysis.SystemScanner;
 using BorealBoost.App.Agent;
 using BorealBoost.App.Navigation;
 using BorealBoost.App.Pages;
 using BorealBoost.App.ViewModels;
 using BorealBoost.Core.Foundation;
+using BorealBoost.Core.Scanner;
 using BorealBoost.Infrastructure.DependencyInjection;
 using BorealBoost.Infrastructure.Logging;
 using BorealBoost.Infrastructure.Paths;
 using BorealBoost.System;
+using BorealBoost.System.Registry;
+using BorealBoost.System.Scanner;
+using BorealBoost.System.Wmi;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -62,15 +67,38 @@ public partial class App : Application
                 services.AddSingleton<IAdminStatusProvider, WindowsAdminStatusProvider>();
                 services.AddSingleton<IBasicSystemInfoProvider, BasicSystemInfoProvider>();
                 services.AddSingleton<IAgentBootstrapService, AgentBootstrapService>();
+                services.AddSingleton<ISystemSnapshotStore, InMemorySystemSnapshotStore>();
+                services.AddSingleton<ISystemScanner, SystemScanner>();
+                services.AddSingleton<ISystemScanSessionService, SystemScanSessionService>();
+                services.AddSingleton<WmiQueryService>();
+                services.AddSingleton<ReadOnlyRegistryReader>();
+                services.AddSingleton<ISystemScanProvider, OperatingSystemScanProvider>();
+                services.AddSingleton<ISystemScanProvider, CpuScanProvider>();
+                services.AddSingleton<ISystemScanProvider, GraphicsScanProvider>();
+                services.AddSingleton<ISystemScanProvider, MemoryScanProvider>();
+                services.AddSingleton<ISystemScanProvider, StorageScanProvider>();
+                services.AddSingleton<ISystemScanProvider, HardwareFirmwareScanProvider>();
+                services.AddSingleton<ISystemScanProvider, DisplayScanProvider>();
+                services.AddSingleton<ISystemScanProvider, NetworkScanProvider>();
+                services.AddSingleton<ISystemScanProvider, DevicesScanProvider>();
+                services.AddSingleton<ISystemScanProvider, DriverInventoryScanProvider>();
+                services.AddSingleton<ISystemScanProvider, PowerScanProvider>();
+                services.AddSingleton<ISystemScanProvider, ServicesScanProvider>();
+                services.AddSingleton<ISystemScanProvider, ProcessesScanProvider>();
+                services.AddSingleton<ISystemScanProvider, StartupScanProvider>();
+                services.AddSingleton<ISystemScanProvider, SecurityCapabilitiesScanProvider>();
 
                 services.AddSingleton<INavigationService>(provider => new NavigationService(
                     () => provider.GetRequiredService<DashboardPage>(),
+                    () => provider.GetRequiredService<ScannerPage>(),
                     () => provider.GetRequiredService<PlaceholderPage>()));
                 services.AddSingleton<MainViewModel>();
                 services.AddTransient<DashboardViewModel>();
+                services.AddTransient<ScannerViewModel>();
                 services.AddTransient<PlaceholderViewModel>();
                 services.AddTransient<MainWindow>();
                 services.AddTransient<DashboardPage>();
+                services.AddTransient<ScannerPage>();
                 services.AddTransient<PlaceholderPage>();
             });
     }

@@ -76,6 +76,14 @@ Metadados de licenca verificados nos `.nuspec`/arquivos de licenca restaurados n
 | xunit.runner.visualstudio | 3.1.4 | Apache-2.0 | Descoberta/execucao de testes via `dotnet test` |
 | coverlet.collector | 6.0.4 | MIT | Coleta futura de cobertura em testes |
 
+## Dependencias NuGet adicionadas na Fase 2
+
+Metadados de licenca verificados no cache NuGet local.
+
+| Pacote | Versao | Licenca declarada | Motivo |
+| --- | --- | --- | --- |
+| System.Management | 10.0.11 | MIT | Acesso WMI/CIM read-only para System Scanner |
+
 ## Bibliotecas candidatas futuras
 
 Ainda nao incorporadas:

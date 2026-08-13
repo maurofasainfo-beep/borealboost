@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Description>Optimization module boundary. No operational tweaks in Phase 1.</Description>
+    <Description>Optimization module boundary. No operational tweaks are implemented.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\BorealBoost.Core\BorealBoost.Core.csproj" />

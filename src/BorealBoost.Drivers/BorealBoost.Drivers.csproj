@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Description>Drivers module boundary. No driver detection or installation in Phase 1.</Description>
+    <Description>Drivers module boundary. No driver source resolution, download, update, or installation is implemented.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\BorealBoost.Core\BorealBoost.Core.csproj" />

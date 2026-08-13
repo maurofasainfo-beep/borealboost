@@ -48,7 +48,7 @@ Fora da V1:
 | Produto desktop | Aplicacao Windows comercial premium | Nao implementado |
 | Stack | Escolha documentada de tecnologia | Documentado nesta fase |
 | Dashboard | Boreal Score, resumo da maquina, CTA de analise | Nao implementado |
-| Scanner | OS, hardware, storage, network, services, processes, startup, security | Nao implementado |
+| Scanner | OS, hardware, storage, network, devices, drivers, displays, power, services, processes, startup e capabilities | Implementado na Fase 2 como inventario read-only; analise/recomendacao permanecem futuras |
 | Drivers | Diagnosticar ausentes, erro, genericos, versao e IDs | Nao implementado |
 | Otimizacao | Catalogo declarativo com detect/apply/verify/undo | Nao implementado |
 | Presets | Safe Boost, Performance, Extreme, Personalizado | Nao implementado |
@@ -127,7 +127,7 @@ Se nao puder responder, a otimizacao nao entra em preset automatico.
 | Arquitetura modular | Documentado, nao implementado |
 | Stack C#/.NET/Windows nativo | Decidido, nao implementado |
 | UX premium | Especificado, nao implementado |
-| Scanner | Nao implementado |
+| Scanner | Implementado parcialmente na Fase 2 como `SystemSnapshot` read-only |
 | Driver Engine | Projetado, nao implementado |
 | Optimization Engine | Projetado, nao implementado |
 | Compatibility Engine | Projetado, nao implementado |
@@ -141,4 +141,3 @@ Se nao puder responder, a otimizacao nao entra em preset automatico.
 - Validar todas as otimizacoes candidatas em VMs antes de escrever catalogo.
 - Confirmar policy comercial para continuar sem restore point caso o Windows bloqueie novo ponto no mesmo dia.
 - Confirmar suporte oficial a Windows 10 fora do ciclo regular Microsoft.
-

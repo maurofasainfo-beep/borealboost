@@ -1,7 +1,7 @@
 # BorealBoost - Security
 
 Data: 2026-08-12
-Status: politica de seguranca para arquitetura.
+Status: politica de seguranca aprovada e atualizada ate a Fase 2.
 
 ## Principios
 
@@ -161,6 +161,32 @@ Logs nao podem conter:
 - conteudo de arquivos do usuario.
 
 Retencao e local devem ser configuraveis.
+
+## System Scanner
+
+O Scanner da Fase 2 e somente leitura. Ele pode consultar WMI/CIM, Win32 APIs, APIs .NET e Registry read-only quando houver justificativa tecnica, mas nao pode modificar o sistema.
+
+Regras:
+
+- nao elevar o Agent para coleta que o processo do usuario consegue fazer;
+- nao executar PowerShell, `cmd.exe`, scripts ou processos externos para scanning;
+- nao instalar, atualizar, remover ou procurar drivers fora do inventario local;
+- nao alterar Registry, Services, Power, DNS, Windows Update, AppX, Defender, Firewall, features ou firmware;
+- nao calcular Boreal Score, benchmark ou recomendacao;
+- `Unknown` deve ser usado quando o dado nao for confiavel.
+- `Win32_VideoController.AdapterRAM` nao deve ser tratado sozinho como VRAM conhecida.
+- WMI/CIM nao deve ser abandonado em background apos timeout/cancelamento; a sessao de scan so muda para concluida/cancelada apos o provider retornar ou falhar.
+- A UI deve usar uma sessao central para impedir scans concorrentes.
+
+Privacidade:
+
+- nao coletar username, email, IP publico, MAC, SSID, Windows product key, machine GUID ou tokens;
+- nao persistir/exibir serial numbers de motherboard/BIOS/RAM por padrao;
+- nao despejar snapshot completo em log;
+- registrar apenas `ScanId`, provider, status, duracao, partial scan, warnings e errors sem dados sensiveis.
+- classificar campos de snapshot por politica explicita antes de persistir/exportar;
+- remover Device Instance ID, Hardware IDs, Compatible IDs, INF, services, processos, startup items e detalhes de adaptadores da copia de relatorio padrao;
+- nao exibir machine name por padrao no Dashboard.
 
 ## Snapshot security
 

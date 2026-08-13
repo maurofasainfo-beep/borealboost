@@ -13,7 +13,7 @@ public sealed class AssemblyApplicationInfoProvider : IApplicationInfoProvider
         return new Core.Foundation.ApplicationInfo(
             Name: "BorealBoost",
             Version: version,
-            Phase: "Fase 1 - Foundation",
+            Phase: "Fase 2 - System Scanner",
             AgentProtocolVersion: ProtocolVersion.Current);
     }
 }
