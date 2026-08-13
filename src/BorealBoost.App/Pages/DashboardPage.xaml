@@ -1,0 +1,64 @@
+<Page
+    x:Class="BorealBoost.App.Pages.DashboardPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Background="{StaticResource BorealBackgroundBrush}" Padding="32">
+        <ScrollViewer>
+            <StackPanel Spacing="24" MaxWidth="1120">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="{Binding ApplicationName}" Style="{StaticResource BorealDisplayTextBlockStyle}" />
+                    <TextBlock Text="Foundation tecnica inicial. Nenhuma otimizacao real foi implementada." Style="{StaticResource BorealBodyTextBlockStyle}" />
+                </StackPanel>
+
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource BorealCardBorderStyle}">
+                        <StackPanel Margin="20" Spacing="6">
+                            <TextBlock Text="Status da aplicacao" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                            <TextBlock Text="{Binding Phase}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                            <TextBlock Text="{Binding Version}" Foreground="{StaticResource BorealPrimaryBrush}" FontSize="18" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1" Style="{StaticResource BorealCardBorderStyle}">
+                        <StackPanel Margin="20" Spacing="6">
+                            <TextBlock Text="Administracao" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                            <TextBlock Text="{Binding AdminStatus}" Foreground="{StaticResource BorealTextPrimaryBrush}" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock Text="O Agent nao e elevado automaticamente no Dashboard." Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource BorealCardBorderStyle}">
+                        <StackPanel Margin="20" Spacing="6">
+                            <TextBlock Text="Protocolo Agent" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                            <TextBlock Text="{Binding ProtocolVersion}" Foreground="{StaticResource BorealAccentBrush}" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding AgentStatus}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Border Style="{StaticResource BorealCardBorderStyle}">
+                    <StackPanel Margin="24" Spacing="12">
+                        <TextBlock Text="Sistema basico" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                        <TextBlock Text="{Binding OperatingSystem}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        <TextBlock Text="{Binding MachineName}" Foreground="{StaticResource BorealTextPrimaryBrush}" FontSize="16" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource BorealCardBorderStyle}">
+                    <StackPanel Margin="24" Spacing="12">
+                        <TextBlock Text="Analise do computador" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                        <TextBlock Text="O scanner completo pertence a Fase 2. Nenhum Boreal Score, diagnostico, tweak ou benchmark e exibido nesta fase." Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        <Button Content="Analisar computador" IsEnabled="False" HorizontalAlignment="Left" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

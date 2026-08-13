@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Description>Core contracts, value objects and pure foundation types for BorealBoost.</Description>
+  </PropertyGroup>
+</Project>

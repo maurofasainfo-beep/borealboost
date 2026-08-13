@@ -1,0 +1,41 @@
+<Window
+    x:Class="BorealBoost.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="BorealBoost">
+
+    <Grid Background="{StaticResource BorealBackgroundBrush}">
+        <NavigationView
+            x:Name="RootNavigation"
+            PaneTitle="BorealBoost"
+            IsBackButtonVisible="Collapsed"
+            IsSettingsVisible="False"
+            PaneDisplayMode="Left"
+            SelectionChanged="OnNavigationSelectionChanged">
+
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="Dashboard" Tag="Dashboard" />
+                <NavigationViewItem Content="Analise" Tag="Analysis" />
+                <NavigationViewItem Content="Otimizacao" Tag="Optimization" />
+                <NavigationViewItem Content="Drivers" Tag="Drivers" />
+                <NavigationViewItem Content="Personalizado" Tag="Custom" />
+                <NavigationViewItem Content="Ferramentas" Tag="Tools" />
+                <NavigationViewItem Content="Resultados" Tag="Results" />
+                <NavigationViewItem Content="Restauracao" Tag="Restore" />
+                <NavigationViewItem Content="Logs" Tag="Logs" />
+                <NavigationViewItem Content="Configuracoes" Tag="Settings" />
+            </NavigationView.MenuItems>
+
+            <NavigationView.PaneFooter>
+                <StackPanel Margin="16" Spacing="6">
+                    <TextBlock Text="{x:Bind ViewModel.VersionText, Mode=OneTime}" Foreground="{StaticResource BorealTextSecondaryBrush}" FontSize="12" />
+                    <Border Background="{StaticResource BorealSurfaceAltBrush}" BorderBrush="{StaticResource BorealBorderBrush}" BorderThickness="1" CornerRadius="8">
+                        <TextBlock Text="{x:Bind ViewModel.AdminStatusText, Mode=OneTime}" Foreground="{StaticResource BorealTextPrimaryBrush}" Margin="10,6" FontSize="12" />
+                    </Border>
+                </StackPanel>
+            </NavigationView.PaneFooter>
+
+            <Frame x:Name="ContentFrame" />
+        </NavigationView>
+    </Grid>
+</Window>

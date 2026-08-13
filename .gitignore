@@ -1,0 +1,45 @@
+# Build output
+bin/
+obj/
+TestResults/
+artifacts/
+
+# Visual Studio / Rider
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# .NET
+*.nupkg
+*.snupkg
+project.lock.json
+project.assets.json
+
+# WinUI / Windows App SDK
+BundleArtifacts/
+AppPackages/
+Generated Files/
+*.appx
+*.appxbundle
+*.msix
+*.msixbundle
+*.cer
+
+# Local BorealBoost runtime data
+logs/
+Logs/
+Sessions/
+Snapshots/
+Reports/
+*.log
+*.jsonl
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.cache

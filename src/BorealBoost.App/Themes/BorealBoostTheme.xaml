@@ -1,0 +1,57 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Color x:Key="BorealBackgroundColor">#080B14</Color>
+    <Color x:Key="BorealBackgroundAltColor">#0D1020</Color>
+    <Color x:Key="BorealSurfaceColor">#111629</Color>
+    <Color x:Key="BorealSurfaceAltColor">#151B32</Color>
+    <Color x:Key="BorealPrimaryColor">#3B82F6</Color>
+    <Color x:Key="BorealSecondaryColor">#7C3AED</Color>
+    <Color x:Key="BorealAccentColor">#EC4899</Color>
+    <Color x:Key="BorealSuccessColor">#22C55E</Color>
+    <Color x:Key="BorealWarningColor">#F59E0B</Color>
+    <Color x:Key="BorealDangerColor">#EF4444</Color>
+    <Color x:Key="BorealTextPrimaryColor">#F8FAFC</Color>
+    <Color x:Key="BorealTextSecondaryColor">#94A3B8</Color>
+    <Color x:Key="BorealBorderColor">#26304A</Color>
+
+    <SolidColorBrush x:Key="BorealBackgroundBrush" Color="{StaticResource BorealBackgroundColor}" />
+    <SolidColorBrush x:Key="BorealBackgroundAltBrush" Color="{StaticResource BorealBackgroundAltColor}" />
+    <SolidColorBrush x:Key="BorealSurfaceBrush" Color="{StaticResource BorealSurfaceColor}" />
+    <SolidColorBrush x:Key="BorealSurfaceAltBrush" Color="{StaticResource BorealSurfaceAltColor}" />
+    <SolidColorBrush x:Key="BorealPrimaryBrush" Color="{StaticResource BorealPrimaryColor}" />
+    <SolidColorBrush x:Key="BorealSecondaryBrush" Color="{StaticResource BorealSecondaryColor}" />
+    <SolidColorBrush x:Key="BorealAccentBrush" Color="{StaticResource BorealAccentColor}" />
+    <SolidColorBrush x:Key="BorealSuccessBrush" Color="{StaticResource BorealSuccessColor}" />
+    <SolidColorBrush x:Key="BorealWarningBrush" Color="{StaticResource BorealWarningColor}" />
+    <SolidColorBrush x:Key="BorealDangerBrush" Color="{StaticResource BorealDangerColor}" />
+    <SolidColorBrush x:Key="BorealTextPrimaryBrush" Color="{StaticResource BorealTextPrimaryColor}" />
+    <SolidColorBrush x:Key="BorealTextSecondaryBrush" Color="{StaticResource BorealTextSecondaryColor}" />
+    <SolidColorBrush x:Key="BorealBorderBrush" Color="{StaticResource BorealBorderColor}" />
+
+    <Style x:Key="BorealDisplayTextBlockStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="34" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource BorealTextPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="BorealHeadingTextBlockStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="22" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource BorealTextPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="BorealBodyTextBlockStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Foreground" Value="{StaticResource BorealTextSecondaryBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="BorealCardBorderStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource BorealSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorealBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+    </Style>
+</ResourceDictionary>
