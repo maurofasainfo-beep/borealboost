@@ -1,7 +1,7 @@
 # BorealBoost - Rollback Engine
 
 Data: 2026-08-13
-Status: arquitetura implementada e revalidada na Fase 4 para prova controlada; restore point real e rollback de catalogo amplo ficam para fases futuras.
+Status: arquitetura implementada e revalidada na Fase 4; Catalog V1 coberto por rollback Registry allowlisted na Fase 5.
 
 ## Objetivo
 
@@ -20,9 +20,9 @@ Restore point sozinho nao basta.
 7. Rollback por sessao.
 8. Verify apos rollback.
 
-## Implementacao Fase 4
+## Implementacao Fases 4 e 5
 
-A Fase 4 implementa rollback operacional apenas para a prova controlada `BorealIntegrationRegistryValue`.
+A Fase 4 implementou rollback operacional para a prova controlada `BorealIntegrationRegistryValue`. A Fase 5 reutiliza o mesmo contrato para `OperationType.RegistryValue` nos 12 targets canonicos do Catalog V1.
 
 Implementado:
 
@@ -37,9 +37,10 @@ Implementado:
 - hash por `OperationSnapshotItem`;
 - rejeicao de snapshot adulterado, de outra sessao ou com schema incompativel;
 - preservacao exata de existencia, `RegistryValueKind`, valor bruto e `RegistryView` para os tipos Registry suportados;
-- recovery observavel para artefatos invalidos ou `.tmp` residual.
+- recovery observavel para artefatos invalidos ou `.tmp` residual;
+- rollback por snapshot para as 12 OptimizationDefinitions reais do Catalog V1.
 
-Nao implementado na Fase 4:
+Nao implementado ate a Fase 5:
 
 - criacao real de restore point;
 - rollback de Services, Power, DNS, AppX, drivers ou features;
@@ -70,8 +71,9 @@ SnapshotItem deve registrar:
 
 Snapshot e obrigatorio para operacoes `reversibility = Full` e para qualquer operacao cujo rollback dependa de valor anterior. Se snapshot obrigatorio falhar, a operacao nao executa.
 
-Na operacao controlada de Registry da Fase 4, o snapshot preserva:
+Na operacao controlada de Registry da Fase 4 e nas operacoes `RegistryValue` do Catalog V1, o snapshot preserva:
 
+- existencia previa da chave;
 - existencia previa do valor;
 - `RegistryValueKind`;
 - valor bruto original;
@@ -80,6 +82,8 @@ Na operacao controlada de Registry da Fase 4, o snapshot preserva:
 - hash local do item.
 
 Tipos suportados na prova controlada: `String`, `ExpandString`, `DWord`, `QWord`, `MultiString` e `Binary`. `REG_EXPAND_SZ` e lido com `DoNotExpandEnvironmentNames`, para que rollback grave novamente `REG_EXPAND_SZ` com o conteudo bruto original. Tipo nao suportado e rejeitado antes de `Apply` para operacao reversivel; nao ha conversao silenciosa para string generica.
+
+Se a chave nao existia antes do apply e foi criada somente pelo BorealBoost, rollback remove a chave quando ela fica vazia apos a remocao do valor. Se outro processo adicionou valor/subchave, rollback nao remove a chave para evitar perda de dados externos.
 
 ## Restore Point
 

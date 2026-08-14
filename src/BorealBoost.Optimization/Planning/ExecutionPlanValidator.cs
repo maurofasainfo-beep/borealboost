@@ -84,6 +84,18 @@ public sealed class ExecutionPlanValidator : IExecutionPlanValidator
                 status = ExecutionPlanValidationStatus.Blocked;
             }
 
+            if (!IsBuildSupported(definition, snapshot) || !IsArchitectureSupported(definition, snapshot) || !CompatibilityRequirementsSatisfied(definition, snapshot))
+            {
+                issues.Add(Issue("optimization.plan.compatibility_blocked", $"Optimization '{optimizationId}' is not compatible with the current snapshot.", optimizationId.ToString()));
+                status = ExecutionPlanValidationStatus.Blocked;
+            }
+
+            if (definition.EvidenceLevel == OptimizationEvidenceLevel.Unknown)
+            {
+                issues.Add(Issue("optimization.plan.evidence_unknown", $"Optimization '{optimizationId}' has unknown evidence and cannot execute.", optimizationId.ToString()));
+                status = ExecutionPlanValidationStatus.Blocked;
+            }
+
             foreach (var operation in definition.OperationSpecs)
             {
                 catalogOperationIds.Add(operation.OperationId);
@@ -168,5 +180,50 @@ public sealed class ExecutionPlanValidator : IExecutionPlanValidator
         }
 
         return plan.SelectedOptimizationIds.FirstOrDefault();
+    }
+
+    private static bool IsBuildSupported(OptimizationDefinition definition, SystemSnapshot snapshot)
+    {
+        if (definition.SupportedWindows.MinimumBuild is { } min &&
+            (snapshot.OperatingSystem.Build is null || snapshot.OperatingSystem.Build < min))
+        {
+            return false;
+        }
+
+        if (definition.SupportedWindows.MaximumBuild is { } max &&
+            (snapshot.OperatingSystem.Build is null || snapshot.OperatingSystem.Build > max))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool IsArchitectureSupported(OptimizationDefinition definition, SystemSnapshot snapshot)
+    {
+        return string.IsNullOrWhiteSpace(definition.SupportedWindows.Architecture) ||
+               string.Equals(definition.SupportedWindows.Architecture, snapshot.OperatingSystem.Architecture, StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(definition.SupportedWindows.Architecture, snapshot.Metadata.MachineArchitecture, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool CompatibilityRequirementsSatisfied(OptimizationDefinition definition, SystemSnapshot snapshot)
+    {
+        foreach (var requirement in definition.CompatibilityRequirements)
+        {
+            var satisfied = requirement.Key switch
+            {
+                "NotVirtualMachine" => !snapshot.Hardware.IsVirtualMachine &&
+                                       snapshot.Hardware.FormFactor != MachineFormFactor.VirtualMachine &&
+                                       string.Equals(requirement.ExpectedValue, "true", StringComparison.OrdinalIgnoreCase),
+                _ => !requirement.Required
+            };
+
+            if (!satisfied && requirement.Required)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

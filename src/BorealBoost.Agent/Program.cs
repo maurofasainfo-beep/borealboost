@@ -32,7 +32,8 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddBorealBoostInfrastructure(context.Configuration);
         services.AddSingleton(parseResult.Value);
         services.AddSingleton<IOptimizationCatalog, BuiltInOptimizationCatalog>();
-        services.AddSingleton<IOperationHandler, BorealIntegrationRegistryOperationHandler>();
+        services.AddSingleton<IOperationHandler>(_ => new BorealIntegrationRegistryOperationHandler(OperationType.BorealIntegrationRegistryValue));
+        services.AddSingleton<IOperationHandler>(_ => new BorealIntegrationRegistryOperationHandler(OperationType.RegistryValue));
         services.AddSingleton<IOperationHandlerRegistry, OperationHandlerRegistry>();
         services.AddSingleton<AgentIpcSession>();
         services.AddHostedService<AgentFoundationService>();

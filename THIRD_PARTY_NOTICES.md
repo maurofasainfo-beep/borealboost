@@ -1,6 +1,6 @@
 # BorealBoost - Third Party Notices
 
-Data: 2026-08-12
+Data: 2026-08-13
 
 ## Estado atual
 
@@ -59,6 +59,11 @@ Principais URLs:
 - `https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/pnputil-command-syntax`
 - `https://learn.microsoft.com/en-us/windows-hardware/drivers/install/setupapi`
 - `https://learn.microsoft.com/en-us/windows/win32/wua_sdk/using-the-windows-update-agent-api`
+- `https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-applicationmanagement#allowgamedvr`
+- `https://learn.microsoft.com/en-us/windows/client-management/mdm/policy-csp-privacy#disableadvertisingid`
+- `https://learn.microsoft.com/en-us/windows/apps/develop/settings/settings-common`
+- `https://learn.microsoft.com/en-us/windows/apps/develop/settings/settings-windows-11`
+- `https://support.microsoft.com/windows/privacy-and-general-settings-in-windows`
 
 ## Dependencias NuGet adicionadas na Fase 1
 

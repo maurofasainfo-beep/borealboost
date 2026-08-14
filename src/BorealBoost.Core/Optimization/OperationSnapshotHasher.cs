@@ -27,6 +27,7 @@ public static class OperationSnapshotHasher
         Append(builder, "resourceType", item.ResourceType.ToString());
         Append(builder, "resourceIdentity", item.ResourceIdentity);
         Append(builder, "existedBefore", item.ExistedBefore.ToString());
+        Append(builder, "registryKeyExistedBefore", item.RegistryKeyExistedBefore?.ToString() ?? string.Empty);
         Append(builder, "registryHive", item.RegistryTarget?.Hive.ToString() ?? string.Empty);
         Append(builder, "registryKey", item.RegistryTarget?.KeyPath ?? string.Empty);
         Append(builder, "registryValue", item.RegistryTarget?.ValueName ?? string.Empty);

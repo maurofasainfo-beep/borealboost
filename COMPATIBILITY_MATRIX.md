@@ -1,7 +1,7 @@
 # BorealBoost - Compatibility Matrix
 
 Data: 2026-08-12
-Status: matriz inicial para planejamento.
+Status: matriz inicial para planejamento; Catalog V1 documentado na Fase 5.
 
 ## Politica geral
 
@@ -98,6 +98,36 @@ Regras:
 - VM torna recomendacoes dependentes de hardware fisico condicionais ou bloqueadas;
 - notebook/portatil torna energia agressiva Advanced e condicionada;
 - Unknown nao e tratado como Compatible.
+
+## Catalog V1 - Fase 5
+
+Compatibility operacional agora e declarada por `OptimizationDefinition.SupportedWindows`, por `PlatformValidationLevel` e por metadata de build no Catalog V1 `5.1.0-built-in-v1`. A compatibilidade e revalidada no `ExecutionPlan`, no `ExecutionPlanValidator`, no PresetEngine e no Agent.
+
+Windows 10 22H2 x64/build 19045:
+
+- target legado funcional preservado;
+- recebe itens Windows 10/11 comuns;
+- recebe `BB.OPT.GAMING.GAME_DVR_POLICY.DISABLE` somente em desktop/not VM, como Advanced e RequiresConfirmation;
+- nao recebe itens Windows 11-only.
+- estado real atual: `UnitTested`; VM/hardware validation permanece `UNVALIDATED_FOR_RELEASE`.
+
+Windows 11 x64:
+
+- recebe itens comuns Windows 10/11;
+- recebe itens Windows 11-only de Start e Game Bar shortcuts;
+- nao recebe o item Windows 10-only Game DVR policy.
+- settings com comportamento dependente de release declaram build minimo; build desconhecido nao recebe selecao automatica.
+
+Unknown/Unsupported:
+
+- nao seleciona automaticamente nenhum item do Catalog V1;
+- Custom nao bypassa blockers do Planner.
+
+Validacao:
+
+- Windows 11: unit-tested e system-tested na maquina atual para Scanner -> Analysis -> Preset Preview;
+- Windows 10 22H2/build 19045: unit-tested por fixture; validacao real/VM permanece `UNVALIDATED_FOR_RELEASE`;
+- HKLM/policy apply real: dry-run, plan, canonical validation e tamper tests cobertos; apply elevado real permanece `UNVALIDATED_FOR_RELEASE`.
 
 ## Windows 11
 

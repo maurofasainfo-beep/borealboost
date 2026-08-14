@@ -1,11 +1,11 @@
 # BorealBoost - Optimization Execution
 
 Data: 2026-08-13
-Status: implementado e revalidado na Fase 4 para prova controlada.
+Status: implementado e revalidado na Fase 4; expandido na Fase 5 para Catalog V1 allowlisted.
 
 ## Escopo
 
-A Fase 4 implementa o motor transacional seguro. Ela nao implementa catalogo real de tweaks e nao altera configuracoes de performance, seguranca, drivers, rede, services, power ou Windows Update.
+A Fase 4 implementa o motor transacional seguro. A Fase 5 adiciona o primeiro Catalog V1 real usando somente `OperationType.RegistryValue` allowlisted. O motor continua sem alterar Services, Power, DNS, Drivers, Windows Update, Defender, Firewall, BCD, timer behavior ou pagefile.
 
 ## Pipeline Implementado
 
@@ -38,12 +38,35 @@ Garantias:
 - key/value devem bater exatamente com a allowlist;
 - snapshot e obrigatorio;
 - rollback restaura existencia, tipo e valor original;
+- rollback distingue chave existente de chave criada pelo BorealBoost; se a chave nao existia antes e ficou vazia apos remover o valor, a chave criada e removida;
 - tipos suportados no snapshot/rollback: `String`, `ExpandString`, `DWord`, `QWord`, `MultiString` e `Binary`;
 - tipos nao suportados sao rejeitados antes do apply quando uma operacao tentaria grava-los ou antes do rollback quando aparecem em snapshot adulterado;
 - mudanca externa apos apply bloqueia sobrescrita cega;
 - nao exige elevation;
 - nao exige reboot;
 - nao representa otimizacao de performance.
+
+## Catalog V1 Runtime
+
+O Catalog V1 possui 12 OptimizationDefinitions reais, `schemaVersion = 5.1.0`, `catalogVersion = 5.1.0-built-in-v1` e exclui a prova de integracao dos presets. Todas as operacoes reais usam:
+
+- `OperationType.RegistryValue`;
+- desired state DWORD fixo no catalogo;
+- detection por leitura exata do valor alvo no Dry Run;
+- snapshot obrigatorio antes de write;
+- apply por handler tipado;
+- verify por leitura real apos apply;
+- rollback por `SnapshotRestore`;
+- `RebootBoundary.None`.
+
+O App registra dois handlers por DI:
+
+- `BorealIntegrationRegistryValue` para `BB.OPT.INTEGRATION.REGISTRY_PROOF`;
+- `RegistryValue` para os targets fixos de `TrustedRegistryOperationTargets.CatalogV1`.
+
+Operacoes HKCU podem rodar sem elevacao. Operacoes HKLM declaram `RequiresElevation=true`; o App deve iniciar o Agent com UAC e o Agent bloqueia apply se o token nao estiver elevado.
+
+O Catalog V1 nao possui operacao irreversible, SecurityTradeoff ou Aggressive/Experimental.
 
 ## Agent
 
@@ -59,7 +82,7 @@ Payloads sao desserializados com rejeicao de campos desconhecidos. O Agent reval
 
 `OperationSpec` recebido pelo Agent deve ser equivalente a definicao canonica do catalogo. Um payload com mesmo `OptimizationId`/`OperationId` e target ou desired state adulterado e rejeitado.
 
-O status do Agent informa se o token do processo esta elevado. Operacoes que declararem `RequiresElevation=true` sao bloqueadas pelo Agent quando o token nao estiver elevado. A prova HKCU controlada nao exige privilegio administrativo, mas o fluxo de bootstrap usa UAC quando o App nao estiver elevado e a operacao futura exigir Agent elevado.
+O status do Agent informa se o token do processo esta elevado. Operacoes que declararem `RequiresElevation=true` sao bloqueadas pelo Agent quando o token nao estiver elevado. O App inicia o Agent elevado somente para operacoes canonicas que declaram elevacao; operacoes HKCU do Catalog V1 mantem o contexto do usuario para nao escrever no HKCU de outro token. Operacoes HKLM do Catalog V1 estao marcadas como `UNVALIDATED_FOR_RELEASE` para apply real ate validacao em VM/ambiente seguro.
 
 ## Persistencia
 
@@ -95,5 +118,5 @@ Concorrencia:
 
 - Catalogo updated assinado ainda nao existe.
 - Restore point real nao e criado.
-- Fase 5 nao foi iniciada.
+- Fase 6 nao foi iniciada.
 - Nenhum executor generico de processo, cmd ou PowerShell existe.

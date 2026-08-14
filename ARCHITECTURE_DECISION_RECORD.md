@@ -1,7 +1,7 @@
 # BorealBoost - Architecture Decision Record
 
-Data: 2026-08-12
-Status: aprovado e atualizado ate a Fase 4
+Data: 2026-08-13
+Status: aprovado e atualizado ate a Fase 5
 
 ## ADR-001 - Stack de aplicacao desktop
 
@@ -92,11 +92,11 @@ Validar em maquina Windows 10 22H2 x64 real/VM se todos os workloads WinUI 3, Wi
 
 ### Decisao
 
-Projetar UI e agente elevado separados. `BorealBoost.Agent` elevado por sessao e requisito arquitetural da V1.
+Projetar UI e agente separados. `BorealBoost.Agent` e requisito arquitetural da V1 e deve ser elevado quando a operacao exigir privilegio.
 
 ### Justificativa
 
-O BorealBoost precisa executar operacoes administrativas, mas nao deve pedir UAC a cada comando. Um agente elevado por sessao permite:
+O BorealBoost precisa executar operacoes administrativas, mas nao deve pedir UAC a cada comando nem elevar a UI inteira. Um agente dedicado por sessao permite:
 
 - concentrar operacoes de risco;
 - auditar comandos aceitos;
@@ -115,6 +115,7 @@ App inteiro sempre elevado. Simples, mas aumenta risco da superficie UI e torna 
 - Agent nao aceita command line, PowerShell, script ou executavel arbitrario vindo da UI.
 - Comunicacao App-Agent usa named pipe local com ACL restrita, handshake, protocolo versionado, replay protection, timeout e limites de payload.
 - Agent revalida ExecutionPlan, catalogo e allowlist antes de executar.
+- Operacoes nao administrativas tambem passam pelo Agent, mas podem usar token nao elevado para preservar HKCU do usuario correto.
 
 ## ADR-004 - Empacotamento
 
@@ -363,3 +364,27 @@ A infraestrutura da Fase 4 sera a base para catalogo real na Fase 5. Antes de am
 - Plano alterado apos aprovacao e rejeitado por hash.
 - JSON truncado, schema incompativel, hash divergente e `.tmp` residual aparecem como `ManualRecovery`, sem rollback automatico.
 - Duas instancias do BorealBoost nao podem executar sessoes mutaveis simultaneas.
+
+## ADR-018 - Catalog V1 conservador e allowlisted
+
+### Decisao
+
+Implementar a Fase 5 com um catalogo built-in V1 pequeno, versionado, conservador e explicitamente classificado, contendo apenas operacoes RegistryValue canonicas e reversiveis. O catalogo real possui 12 OptimizationDefinitions: 6 Safe, 5 Medium, 1 Advanced e 0 Aggressive/Experimental.
+
+### Justificativa
+
+A Fase 5 e a primeira fase com otimizacoes reais. A decisao privilegia tecnicas documentadas pela Microsoft ou verificaveis por estado local, evita listas grandes de tweaks populares e preserva o pipeline aprovado na Fase 4: Dry Run, Preflight, snapshot antes de write, Agent, apply, verify, journal e rollback.
+
+### Implicacoes
+
+- `BuiltInOptimizationCatalog` declara `schemaVersion = 5.1.0` e `catalogVersion = 5.1.0-built-in-v1`.
+- `TrustedRegistryOperationTargets.CatalogV1` fixa exatamente hive, key, value, view e desired state.
+- `OperationType.RegistryValue` e aceito apenas quando a OperationSpec coincide com a definicao canonica confiavel.
+- Cada definicao declara `TechnicalCategory`, `PerformanceRelevance`, `AutomaticPresetSuitability`, `ConfigurationMechanism`, `ActivationBoundary`, `VerificationLevel` e `RollbackValidationLevel`.
+- Basic nao seleciona preferencias pessoais por padrao; seleciona somente itens `Automatic` Safe compativeis.
+- Medium seleciona itens `Automatic` Safe/Medium e mostra preferencias `OptIn` como `RequiresConfirmation`.
+- Advanced pode expor itens de maior risco ou `AdvancedOnly` como `RequiresConfirmation`, sem selecao silenciosa.
+- Custom pode expor preferencias compativeis, mas nao permite executar `Blocked`.
+- Nenhum item desabilita Defender, Firewall, Windows Update permanentemente, pagefile, BCD ou timer behavior.
+- Nenhum target vem livremente da UI e nenhuma execucao arbitraria foi introduzida.
+- `OPTIMIZATION_CATALOG.md` passa a ser o documento de referencia do catalogo V1 e dos tweaks rejeitados/deferidos.

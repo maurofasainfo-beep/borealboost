@@ -1,3 +1,4 @@
+using BorealBoost.Core.Analysis;
 using BorealBoost.Core.Optimization;
 
 namespace BorealBoost.Optimization.Catalog;
@@ -26,6 +27,21 @@ public sealed class OptimizationDefinitionValidator : IOptimizationDefinitionVal
             issues.Add(Issue("optimization.definition.category_invalid", "Category is invalid.", definition.OptimizationId.ToString()));
         }
 
+        if (!Enum.IsDefined(definition.TechnicalCategory) ||
+            !Enum.IsDefined(definition.ConfigurationEvidence) ||
+            !Enum.IsDefined(definition.PerformanceRelevance) ||
+            !Enum.IsDefined(definition.AutomaticPresetSuitability) ||
+            !Enum.IsDefined(definition.UserPreferenceImpact) ||
+            !Enum.IsDefined(definition.ConfigurationMechanism) ||
+            !Enum.IsDefined(definition.ActivationBoundary) ||
+            !Enum.IsDefined(definition.VerificationLevel) ||
+            !Enum.IsDefined(definition.RollbackValidationLevel) ||
+            !Enum.IsDefined(definition.Windows10ValidationLevel) ||
+            !Enum.IsDefined(definition.Windows11ValidationLevel))
+        {
+            issues.Add(Issue("optimization.definition.classification_invalid", "One or more catalog classification fields are invalid.", definition.OptimizationId.ToString()));
+        }
+
         if (!Enum.IsDefined(definition.RiskLevel))
         {
             issues.Add(Issue("optimization.definition.risk_invalid", "RiskLevel is invalid.", definition.OptimizationId.ToString()));
@@ -34,6 +50,48 @@ public sealed class OptimizationDefinitionValidator : IOptimizationDefinitionVal
         if (!Enum.IsDefined(definition.EvidenceLevel) || definition.EvidenceLevel == OptimizationEvidenceLevel.Unknown)
         {
             issues.Add(Issue("optimization.definition.evidence_invalid", "EvidenceLevel must be known.", definition.OptimizationId.ToString()));
+        }
+
+        if (!Enum.IsDefined(definition.ExpectedImpact))
+        {
+            issues.Add(Issue("optimization.definition.impact_invalid", "ExpectedImpact is invalid.", definition.OptimizationId.ToString()));
+        }
+
+        if (definition.Category != OptimizationCategory.IntegrationTest &&
+            definition.EvidenceReferences.Count == 0)
+        {
+            issues.Add(Issue("optimization.definition.evidence_references_missing", "Catalog optimizations require documented evidence references.", definition.OptimizationId.ToString()));
+        }
+
+        if (!ValidPresetFlags(definition.PresetEligibility))
+        {
+            issues.Add(Issue("optimization.definition.preset_invalid", "PresetEligibility contains invalid flags.", definition.OptimizationId.ToString()));
+        }
+
+        if (definition.PresetEligibility.HasFlag(RecommendationPresetEligibility.Basic) &&
+            (definition.RiskLevel != OptimizationRiskLevel.Safe ||
+             definition.AutomaticPresetSuitability != AutomaticPresetSuitability.Automatic ||
+             definition.EvidenceLevel == OptimizationEvidenceLevel.Experimental ||
+             definition.IsSecurityTradeoff ||
+             !definition.SupportsUndo ||
+             definition.RequiresRestart))
+        {
+            issues.Add(Issue("optimization.definition.basic_policy_invalid", "Basic preset eligibility is allowed only for Safe, automatic, reversible, non-security-tradeoff, non-restart optimizations.", definition.OptimizationId.ToString()));
+        }
+
+        if (definition.PresetEligibility.HasFlag(RecommendationPresetEligibility.Medium) &&
+            (definition.RiskLevel > OptimizationRiskLevel.Medium ||
+             definition.AutomaticPresetSuitability is AutomaticPresetSuitability.CustomOnly or AutomaticPresetSuitability.AdvancedOnly ||
+             definition.EvidenceLevel == OptimizationEvidenceLevel.Experimental ||
+             definition.IsSecurityTradeoff ||
+             !definition.SupportsUndo))
+        {
+            issues.Add(Issue("optimization.definition.medium_policy_invalid", "Medium preset eligibility is allowed only for Safe/Medium, reversible, non-security-tradeoff optimizations with known evidence.", definition.OptimizationId.ToString()));
+        }
+
+        if (definition.SupportsUndo && definition.RollbackSpecs.Count == 0)
+        {
+            issues.Add(Issue("optimization.definition.rollback_missing", "SupportsUndo requires rollback specs.", definition.OptimizationId.ToString()));
         }
 
         if (definition.OperationSpecs.Count == 0)
@@ -129,5 +187,14 @@ public sealed class OptimizationDefinitionValidator : IOptimizationDefinitionVal
     private static OptimizationIssue Issue(string code, string message, string scope)
     {
         return new OptimizationIssue(code, message, scope);
+    }
+
+    private static bool ValidPresetFlags(RecommendationPresetEligibility value)
+    {
+        var allowed = RecommendationPresetEligibility.Basic |
+                      RecommendationPresetEligibility.Medium |
+                      RecommendationPresetEligibility.Advanced |
+                      RecommendationPresetEligibility.Custom;
+        return (value & ~allowed) == 0;
     }
 }

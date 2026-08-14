@@ -1,7 +1,7 @@
 # BorealBoost - UX Specification
 
 Data: 2026-08-12
-Status: especificacao de experiencia atualizada ate a Fase 4.
+Status: especificacao de experiencia atualizada ate a Fase 5.
 
 ## Direcao visual
 
@@ -177,6 +177,17 @@ Status da Fase 4:
 - nenhuma selecao de preset aplica tweaks reais;
 - nenhum ganho de FPS, performance ou Boreal Score e exibido.
 
+Status da Fase 5:
+
+- pagina `Otimizacao` calcula presets Basic, Medium, Advanced e Custom a partir do snapshot e analysis atuais;
+- mostra `CatalogVersion`, quantidade de definicoes reais, selecionados, bloqueados, not applicable e itens que exigem confirmacao;
+- lista cada OptimizationDefinition com categoria, classificacao tecnica, risco, evidencia, relevancia de performance, suitability automatica, mecanismo de configuracao, activation boundary, verification level, status, reboot e rollback;
+- checkbox fica habilitado somente para itens `Selected`;
+- `RequiresConfirmation`, `Blocked` e `NotApplicable` nao entram automaticamente em plano;
+- Dry Run continua obrigatorio antes de executar;
+- a execucao usa o pipeline seguro e o Agent, sem comando arbitrario;
+- a UI nao mostra FPS gain, percentual de melhoria, Boreal Score comercial ou "PC otimizado" sem benchmark.
+
 ## Modal Avancado
 
 Deve explicar:
@@ -297,6 +308,7 @@ Status da Fase 4:
 - nao promete rollback quando nao existe snapshot;
 - recovery mostra acao sugerida, sem executar rollback automatico;
 - rollback operacional existe no engine e e validado por testes controlados.
+- preferencias de UX, privacidade e atalhos devem aparecer como preferencias/opt-in, nao como aumento de FPS ou performance.
 
 ## Logs
 

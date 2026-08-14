@@ -9,7 +9,7 @@ namespace BorealBoost.Optimization.Planning;
 
 public sealed class ExecutionPlanner : IExecutionPlanner
 {
-    public const string EngineVersion = "4.0.0";
+    public const string EngineVersion = "5.1.0";
     public const string PlanSchemaVersion = "4.0.0";
 
     private readonly IOptimizationCatalog _catalog;
@@ -85,6 +85,11 @@ public sealed class ExecutionPlanner : IExecutionPlanner
             if (!IsSupported(definition, snapshot))
             {
                 blockers.Add(new OptimizationIssue("optimization.plan.compatibility_blocked", $"Optimization '{definition.OptimizationId}' is not compatible with the current Windows snapshot.", definition.OptimizationId.ToString()));
+            }
+
+            if (definition.EvidenceLevel == OptimizationEvidenceLevel.Unknown)
+            {
+                blockers.Add(new OptimizationIssue("optimization.plan.evidence_unknown", $"Optimization '{definition.OptimizationId}' has unknown evidence and cannot execute.", definition.OptimizationId.ToString()));
             }
         }
 
@@ -163,19 +168,49 @@ public sealed class ExecutionPlanner : IExecutionPlanner
             return false;
         }
 
-        if (definition.SupportedWindows.MinimumBuild is { } min && snapshot.OperatingSystem.Build < min)
+        if (definition.SupportedWindows.MinimumBuild is { } min &&
+            (snapshot.OperatingSystem.Build is null || snapshot.OperatingSystem.Build < min))
         {
             return false;
         }
 
-        if (definition.SupportedWindows.MaximumBuild is { } max && snapshot.OperatingSystem.Build > max)
+        if (definition.SupportedWindows.MaximumBuild is { } max &&
+            (snapshot.OperatingSystem.Build is null || snapshot.OperatingSystem.Build > max))
         {
             return false;
         }
 
-        return string.IsNullOrWhiteSpace(definition.SupportedWindows.Architecture) ||
-               string.Equals(definition.SupportedWindows.Architecture, snapshot.OperatingSystem.Architecture, StringComparison.OrdinalIgnoreCase) ||
-               string.Equals(definition.SupportedWindows.Architecture, snapshot.Metadata.MachineArchitecture, StringComparison.OrdinalIgnoreCase);
+        var architectureSupported = string.IsNullOrWhiteSpace(definition.SupportedWindows.Architecture) ||
+                                    string.Equals(definition.SupportedWindows.Architecture, snapshot.OperatingSystem.Architecture, StringComparison.OrdinalIgnoreCase) ||
+                                    string.Equals(definition.SupportedWindows.Architecture, snapshot.Metadata.MachineArchitecture, StringComparison.OrdinalIgnoreCase);
+        if (!architectureSupported)
+        {
+            return false;
+        }
+
+        foreach (var requirement in definition.CompatibilityRequirements)
+        {
+            if (!RequirementSatisfied(snapshot, requirement))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool RequirementSatisfied(
+        SystemSnapshot snapshot,
+        CompatibilityRequirement requirement)
+    {
+        return requirement.Key switch
+        {
+            "NotVirtualMachine" => !requirement.Required ||
+                                   (!snapshot.Hardware.IsVirtualMachine &&
+                                    snapshot.Hardware.FormFactor != MachineFormFactor.VirtualMachine &&
+                                    string.Equals(requirement.ExpectedValue, "true", StringComparison.OrdinalIgnoreCase)),
+            _ => !requirement.Required
+        };
     }
 
     private static RiskSummary BuildRiskSummary(IReadOnlyList<OptimizationDefinition> definitions)

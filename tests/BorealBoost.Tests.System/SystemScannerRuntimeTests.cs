@@ -114,6 +114,35 @@ public sealed class SystemScannerRuntimeTests
     }
 
     [Fact]
+    public async Task Real_scanner_analysis_flows_into_catalog_preset_preview_read_only()
+    {
+        var scanner = CreateScanner();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(75));
+        var scanResult = await scanner.ScanAsync(null, timeout.Token);
+        Assert.True(scanResult.IsSuccess, scanResult.ErrorMessage);
+
+        var analysisResult = await CreateAnalysisEngine().AnalyzeAsync(scanResult.Value!, CancellationToken.None);
+        Assert.True(analysisResult.IsSuccess, analysisResult.ErrorMessage);
+
+        var catalog = new BuiltInOptimizationCatalog();
+        var presetEngine = new OptimizationPresetEngine(catalog);
+        var basic = presetEngine.Preview(scanResult.Value!, analysisResult.Value!, RecommendationPreset.Basic);
+        var medium = presetEngine.Preview(scanResult.Value!, analysisResult.Value!, RecommendationPreset.Medium);
+        var advanced = presetEngine.Preview(scanResult.Value!, analysisResult.Value!, RecommendationPreset.Advanced);
+
+        Assert.Equal(12, catalog.GetDefinitions().Count(definition => definition.Category != OptimizationCategory.IntegrationTest));
+        Assert.All(basic.SelectedItems, item => Assert.Equal(OptimizationRiskLevel.Safe, item.RiskLevel));
+        Assert.All(medium.SelectedItems, item => Assert.True(item.RiskLevel <= OptimizationRiskLevel.Medium));
+        Assert.DoesNotContain(basic.SelectedItems.Concat(medium.SelectedItems), item => item.IsSecurityTradeoff);
+        Assert.DoesNotContain(advanced.SelectedItems, item => item.RiskLevel == OptimizationRiskLevel.Aggressive);
+
+        _output.WriteLine($"CatalogVersion={catalog.CatalogVersion}");
+        WritePresetSummary("Basic", basic);
+        WritePresetSummary("Medium", medium);
+        WritePresetSummary("Advanced", advanced);
+    }
+
+    [Fact]
     public async Task Real_scanner_analysis_flows_into_optimization_dry_run_and_controlled_rollback()
     {
         using var registryScope = ControlledRegistryTestScope.Acquire();
@@ -284,6 +313,14 @@ public sealed class SystemScannerRuntimeTests
     private static int RiskCount(AnalysisResult result, RecommendationRiskLevel risk)
     {
         return result.Summary.RiskDistribution.TryGetValue(risk, out var count) ? count : 0;
+    }
+
+    private void WritePresetSummary(string name, OptimizationPresetSelection selection)
+    {
+        _output.WriteLine($"{name}Selected={selection.SelectedItems.Count}");
+        _output.WriteLine($"{name}RequiresConfirmation={selection.RequiresConfirmationItems.Count}");
+        _output.WriteLine($"{name}Blocked={selection.BlockedItems.Count}");
+        _output.WriteLine($"{name}NotApplicable={selection.Items.Count(item => item.Status == OptimizationPresetSelectionStatus.NotApplicable)}");
     }
 
     private sealed class SynchronousProgress : IProgress<ScanProgressUpdate>

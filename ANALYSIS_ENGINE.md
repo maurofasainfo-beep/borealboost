@@ -157,10 +157,15 @@ Nenhum preset executa alteracao nesta fase.
 
 `AnalysisResult` nao duplica inventarios sensiveis completos. Evidencias usam contagens, status e campos tecnicos minimos. Device Instance IDs, Hardware IDs, Compatible IDs, INF, processos, services e detalhes de rede permanecem protegidos pela politica de redaction da Fase 2.
 
+## Uso pela Fase 5
+
+A Fase 5 consome `SystemSnapshot` e `AnalysisResult` para calcular Preset Preview do Catalog V1. Analysis continua read-only: ele nao executa OperationSpec nem consulta Windows diretamente durante regras.
+
+O PresetEngine da Fase 5 exige que `AnalysisResult.ScanId` corresponda ao `SystemSnapshot.Metadata.ScanId`. Resultado stale bloqueia selecao automatica.
+
 ## Limitacoes
 
-- Nao existe Optimization Catalog operacional.
-- `FutureOptimizationId` pode ser preenchido no futuro; as regras iniciais nao criam operacoes.
+- `FutureOptimizationId` continua apenas referencia; as regras de Analysis nao criam nem executam operacoes.
 - Nao ha driver download/install/update.
 - Nao ha benchmark ou FPS medido.
 - Nao ha Boreal Score operacional.

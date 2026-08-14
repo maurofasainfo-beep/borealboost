@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using BorealBoost.Core.Analysis;
 using BorealBoost.Core.Optimization;
 using BorealBoost.Core.Scanner;
-using BorealBoost.Optimization.Catalog;
 using Microsoft.Extensions.Logging;
 
 namespace BorealBoost.App.ViewModels;
@@ -10,12 +9,14 @@ namespace BorealBoost.App.ViewModels;
 public sealed class OptimizationViewModel : ObservableObject
 {
     private readonly IOptimizationCatalog _catalog;
+    private readonly IOptimizationPresetEngine _presetEngine;
     private readonly IDryRunService _dryRunService;
     private readonly IOptimizationSessionService _sessionService;
     private readonly ISystemSnapshotStore _snapshotStore;
     private readonly IAnalysisResultStore _analysisResultStore;
     private readonly ILogger<OptimizationViewModel> _logger;
     private DryRunResult? _lastDryRun;
+    private RecommendationPreset _selectedPreset = RecommendationPreset.Basic;
     private bool _isBusy;
     private string _statusText = "Execute Scanner e Analise antes de revisar um plano.";
     private string _planSummary = "Nenhum plano criado.";
@@ -24,6 +25,7 @@ public sealed class OptimizationViewModel : ObservableObject
 
     public OptimizationViewModel(
         IOptimizationCatalog catalog,
+        IOptimizationPresetEngine presetEngine,
         IDryRunService dryRunService,
         IOptimizationSessionService sessionService,
         ISystemSnapshotStore snapshotStore,
@@ -31,6 +33,7 @@ public sealed class OptimizationViewModel : ObservableObject
         ILogger<OptimizationViewModel> logger)
     {
         _catalog = catalog;
+        _presetEngine = presetEngine;
         _dryRunService = dryRunService;
         _sessionService = sessionService;
         _snapshotStore = snapshotStore;
@@ -45,8 +48,7 @@ public sealed class OptimizationViewModel : ObservableObject
         {
             if (SetProperty(ref _isBusy, value))
             {
-                OnPropertyChanged(nameof(CanDryRun));
-                OnPropertyChanged(nameof(CanExecuteControlledOperation));
+                RefreshAvailability();
             }
         }
     }
@@ -54,6 +56,8 @@ public sealed class OptimizationViewModel : ObservableObject
     public bool CanDryRun => !IsBusy && _snapshotStore.Current is not null && _analysisResultStore.Current is not null;
 
     public bool CanExecuteControlledOperation => !IsBusy && _lastDryRun?.Validation.CanExecute == true && _lastDryRun.Blockers.Count == 0;
+
+    public string SelectedPresetText => _selectedPreset.ToString();
 
     public string StatusText
     {
@@ -79,6 +83,8 @@ public sealed class OptimizationViewModel : ObservableObject
         private set => SetProperty(ref _executionSummary, value);
     }
 
+    public ObservableCollection<OptimizationCatalogItem> PresetItems { get; } = [];
+
     public ObservableCollection<OptimizationOperationItem> Operations { get; } = [];
 
     public ObservableCollection<OptimizationIssueItem> Issues { get; } = [];
@@ -90,18 +96,30 @@ public sealed class OptimizationViewModel : ObservableObject
         if (_snapshotStore.Current is null)
         {
             StatusText = "Sem SystemSnapshot. Execute o Scanner.";
+            PlanSummary = $"CatalogVersion={_catalog.CatalogVersion}; Definitions={RealDefinitionCount()}.";
             return Task.CompletedTask;
         }
 
         if (_analysisResultStore.Current is null)
         {
             StatusText = "Sem AnalysisResult. Execute a Analise.";
+            PlanSummary = $"CatalogVersion={_catalog.CatalogVersion}; Definitions={RealDefinitionCount()}.";
             return Task.CompletedTask;
         }
 
-        StatusText = "Pronto para Dry Run do motor de otimizacao.";
-        PlanSummary = "Fase 4 expõe apenas a prova controlada do motor; catalogo real fica para a Fase 5.";
+        RefreshPresetPreview();
         return Task.CompletedTask;
+    }
+
+    public void SelectPreset(RecommendationPreset preset)
+    {
+        _selectedPreset = preset;
+        _lastDryRun = null;
+        Operations.Clear();
+        Issues.Clear();
+        OnPropertyChanged(nameof(SelectedPresetText));
+        RefreshPresetPreview();
+        RefreshAvailability();
     }
 
     public async Task RunDryRunAsync(CancellationToken cancellationToken)
@@ -118,7 +136,21 @@ public sealed class OptimizationViewModel : ObservableObject
         IsBusy = true;
         try
         {
-            var selected = new[] { BuiltInOptimizationCatalog.IntegrationProofOptimizationId };
+            if (PresetItems.Count == 0)
+            {
+                RefreshPresetPreview();
+            }
+
+            var selected = SelectedOptimizationIds();
+            if (selected.Count == 0)
+            {
+                _lastDryRun = null;
+                StatusText = "Preset sem itens executaveis automaticamente.";
+                SafetySummary = "Itens bloqueados, incompativeis ou que exigem confirmacao nao entram no plano automaticamente.";
+                RefreshAvailability();
+                return;
+            }
+
             var result = await _dryRunService.DryRunAsync(snapshot, analysis, selected, cancellationToken).ConfigureAwait(true);
             if (result.IsFailure || result.Value is null)
             {
@@ -152,7 +184,7 @@ public sealed class OptimizationViewModel : ObservableObject
         var snapshot = _snapshotStore.Current;
         if (snapshot is null || _lastDryRun is null || !_lastDryRun.Validation.CanExecute)
         {
-            StatusText = "Execute um Dry Run valido antes da prova controlada.";
+            StatusText = "Execute um Dry Run valido antes da execucao.";
             return;
         }
 
@@ -162,22 +194,22 @@ public sealed class OptimizationViewModel : ObservableObject
             var result = await _sessionService.ExecuteAsync(_lastDryRun.Plan, snapshot, cancellationToken).ConfigureAwait(true);
             if (result.IsFailure || result.Value is null)
             {
-                ExecutionSummary = result.ErrorMessage ?? "Execucao controlada falhou.";
-                StatusText = "Execucao controlada nao concluida.";
+                ExecutionSummary = result.ErrorMessage ?? "Execucao falhou.";
+                StatusText = "Execucao nao concluida.";
                 return;
             }
 
             ExecutionSummary = $"Sessao {result.Value.SessionId} finalizada em estado {result.Value.State}. Rollback disponivel quando snapshot existir.";
-            StatusText = "Prova controlada do motor concluida sem otimizar performance.";
+            StatusText = "Execucao concluida pelo pipeline seguro com verificacao.";
         }
         catch (OperationCanceledException)
         {
-            StatusText = "Execucao controlada cancelada.";
+            StatusText = "Execucao cancelada.";
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Controlled optimization execution failed.");
-            StatusText = "Nao foi possivel executar a prova controlada.";
+            _logger.LogError(exception, "Optimization execution failed.");
+            StatusText = "Nao foi possivel executar o plano.";
             ExecutionSummary = "Detalhes tecnicos foram registrados nos logs.";
         }
         finally
@@ -185,6 +217,51 @@ public sealed class OptimizationViewModel : ObservableObject
             IsBusy = false;
             RefreshAvailability();
         }
+    }
+
+    private void RefreshPresetPreview()
+    {
+        var snapshot = _snapshotStore.Current;
+        var analysis = _analysisResultStore.Current;
+        PresetItems.Clear();
+        if (snapshot is null || analysis is null)
+        {
+            PlanSummary = $"CatalogVersion={_catalog.CatalogVersion}; Definitions={RealDefinitionCount()}; execute Scanner e Analise para calcular presets.";
+            SafetySummary = "Nenhuma alteracao ocorre sem Dry Run e confirmacao.";
+            return;
+        }
+
+        var selection = _presetEngine.Preview(snapshot, analysis, _selectedPreset);
+        foreach (var item in selection.Items)
+        {
+            PresetItems.Add(new OptimizationCatalogItem(
+                item.OptimizationId.ToString(),
+                item.Title,
+                item.Category.ToString(),
+                item.TechnicalCategory.ToString(),
+                item.RiskLevel.ToString(),
+                item.EvidenceLevel.ToString(),
+                item.ConfigurationEvidence.ToString(),
+                item.ExpectedImpact.ToString(),
+                item.PerformanceRelevance.ToString(),
+                item.AutomaticPresetSuitability.ToString(),
+                item.UserPreferenceImpact.ToString(),
+                item.ConfigurationMechanism.ToString(),
+                item.ActivationBoundary.ToString(),
+                item.VerificationLevel.ToString(),
+                item.RollbackValidationLevel.ToString(),
+                string.Join(", ", item.ImpactAreas),
+                item.Status.ToString(),
+                item.Reason,
+                item.RequiresRestart ? "Reboot requerido" : $"Activation={item.ActivationBoundary}",
+                item.SupportsUndo ? $"Rollback={item.RollbackValidationLevel}" : "Sem rollback",
+                item.Status == OptimizationPresetSelectionStatus.Selected,
+                item.Status == OptimizationPresetSelectionStatus.Selected));
+        }
+
+        PlanSummary = $"Preset={_selectedPreset}; CatalogVersion={_catalog.CatalogVersion}; Definitions={RealDefinitionCount()}; Selected={selection.SelectedItems.Count}; RequiresConfirmation={selection.RequiresConfirmationItems.Count}; Blocked={selection.BlockedItems.Count}.";
+        SafetySummary = "Dry Run ainda nao executado. Nenhuma alteracao ocorre antes da revisao do plano.";
+        StatusText = "Preset calculado a partir do snapshot e da analise atuais.";
     }
 
     private void ApplyDryRun(DryRunResult result)
@@ -208,17 +285,139 @@ public sealed class OptimizationViewModel : ObservableObject
             Issues.Add(new OptimizationIssueItem(issue.Code, issue.Scope, issue.Message));
         }
 
-        PlanSummary = $"PlanId={result.Plan.PlanId}; Operations={result.Plan.OrderedOperations.Count}; Risk={result.Plan.RiskSummary.HighestRisk}; Reboot={(result.Plan.RequiresRestart ? "sim" : "nao")}; RestorePoint={result.Plan.RestorePointRequirement}.";
+        PlanSummary = $"Preset={_selectedPreset}; PlanId={result.Plan.PlanId}; Operations={result.Plan.OrderedOperations.Count}; Risk={result.Plan.RiskSummary.HighestRisk}; Reboot={(result.Plan.RequiresRestart ? "sim" : "nao")}; RestorePoint={result.Plan.RestorePointRequirement}.";
         SafetySummary = result.Validation.CanExecute && result.Blockers.Count == 0
             ? "Dry Run validado. Snapshot e verification sao obrigatorios antes de commit."
             : $"Dry Run bloqueado. Blockers={result.Blockers.Count}; Issues={result.Validation.Issues.Count}.";
         StatusText = "Dry Run concluido sem modificar Windows.";
     }
 
+    private IReadOnlyList<OptimizationId> SelectedOptimizationIds()
+    {
+        return PresetItems
+            .Where(item => item.IsSelected && item.CanSelect)
+            .Select(item => new OptimizationId(item.OptimizationId))
+            .Distinct()
+            .OrderBy(id => id.Value, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private int RealDefinitionCount()
+    {
+        return _catalog.GetDefinitions().Count(definition => definition.Category != OptimizationCategory.IntegrationTest);
+    }
+
     private void RefreshAvailability()
     {
         OnPropertyChanged(nameof(CanDryRun));
         OnPropertyChanged(nameof(CanExecuteControlledOperation));
+    }
+}
+
+public sealed class OptimizationCatalogItem : ObservableObject
+{
+    private bool _isSelected;
+
+    public OptimizationCatalogItem(
+        string optimizationId,
+        string title,
+        string category,
+        string technicalCategory,
+        string risk,
+        string evidence,
+        string configurationEvidence,
+        string impact,
+        string performanceRelevance,
+        string automaticPresetSuitability,
+        string userPreferenceImpact,
+        string configurationMechanism,
+        string activationBoundary,
+        string verificationLevel,
+        string rollbackValidationLevel,
+        string impactAreas,
+        string status,
+        string reason,
+        string reboot,
+        string rollback,
+        bool isSelected,
+        bool canSelect)
+    {
+        OptimizationId = optimizationId;
+        Title = title;
+        Category = category;
+        TechnicalCategory = technicalCategory;
+        Risk = risk;
+        Evidence = evidence;
+        ConfigurationEvidence = configurationEvidence;
+        Impact = impact;
+        PerformanceRelevance = performanceRelevance;
+        AutomaticPresetSuitability = automaticPresetSuitability;
+        UserPreferenceImpact = userPreferenceImpact;
+        ConfigurationMechanism = configurationMechanism;
+        ActivationBoundary = activationBoundary;
+        VerificationLevel = verificationLevel;
+        RollbackValidationLevel = rollbackValidationLevel;
+        ImpactAreas = impactAreas;
+        Status = status;
+        Reason = reason;
+        Reboot = reboot;
+        Rollback = rollback;
+        _isSelected = isSelected;
+        CanSelect = canSelect;
+    }
+
+    public string OptimizationId { get; }
+
+    public string Title { get; }
+
+    public string Category { get; }
+
+    public string TechnicalCategory { get; }
+
+    public string Risk { get; }
+
+    public string Evidence { get; }
+
+    public string ConfigurationEvidence { get; }
+
+    public string Impact { get; }
+
+    public string PerformanceRelevance { get; }
+
+    public string AutomaticPresetSuitability { get; }
+
+    public string UserPreferenceImpact { get; }
+
+    public string ConfigurationMechanism { get; }
+
+    public string ActivationBoundary { get; }
+
+    public string VerificationLevel { get; }
+
+    public string RollbackValidationLevel { get; }
+
+    public string ImpactAreas { get; }
+
+    public string Status { get; }
+
+    public string Reason { get; }
+
+    public string Reboot { get; }
+
+    public string Rollback { get; }
+
+    public bool CanSelect { get; }
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (CanSelect)
+            {
+                SetProperty(ref _isSelected, value);
+            }
+        }
     }
 }
 

@@ -1,7 +1,7 @@
 # BorealBoost - Optimization Engine
 
-Data: 2026-08-12
-Status: arquitetura implementada parcialmente na Fase 4; catalogo amplo de tweaks fica para Fase 5.
+Data: 2026-08-13
+Status: motor transacional aprovado na Fase 4; Catalog V1 implementado na Fase 5.
 
 ## Objetivo
 
@@ -76,6 +76,52 @@ Regras:
 - se o valor mudar externamente entre apply e rollback, rollback nao sobrescreve cegamente;
 - tipos preservados: `String`, `ExpandString`, `DWord`, `QWord`, `MultiString` e `Binary`;
 - `REG_EXPAND_SZ` e capturado sem expandir variaveis de ambiente.
+
+## Implementacao Fase 5 - Catalog V1
+
+A Fase 5 introduz `BuiltInOptimizationCatalog` V1 com otimizacoes reais pequenas, documentadas e reversiveis. O catalogo nao copia WinUtil nem inclui pacote amplo de tweaks.
+
+Manifest:
+
+- `schemaVersion = 5.1.0`;
+- `catalogVersion = 5.1.0-built-in-v1`;
+- publisher built-in do BorealBoost;
+- hash SHA-256 canonico de conteudo, cobrindo tambem classificacao tecnica, mecanismo de configuracao, fronteira de ativacao, verificacao, rollback, compatibilidade/build, elevacao e `OperationSpec`.
+
+Distribuicao real:
+
+- 12 OptimizationDefinitions reais;
+- 6 Safe;
+- 5 Medium;
+- 1 Advanced;
+- 0 Aggressive/Experimental;
+- 0 SecurityTradeoff;
+- 12 com `SupportsUndo=true`;
+- 0 com reboot automatico.
+
+Categorias preenchidas:
+
+- Visual;
+- Windows;
+- Gaming;
+- Privacy.
+
+Classificacao tecnica adicional:
+
+- `Responsiveness`: 1;
+- `GamingPerformance`: 1;
+- `GamingFeaturePreference`: 3;
+- `Privacy`: 4;
+- `UXPreference`: 2;
+- `SystemBehavior`: 1.
+
+OperationType real adicionado:
+
+- `RegistryValue`, aceito somente quando a OperationSpec coincide com `TrustedRegistryOperationTargets.CatalogV1`.
+
+O Agent continua rejeitando path, key, value name, desired state ou command line vindos livremente da UI. `OptimizationId`/`OperationId` validos nao bastam: a operacao inteira precisa coincidir com a definicao canonica.
+
+`OPTIMIZATION_CATALOG.md` e o documento de referencia para IDs, risco, evidencia, mecanismo de configuracao, relevancia de performance, compatibilidade, detection, operation, activation boundary, verification, rollback e side effects de cada item.
 
 ### OptimizationCatalog
 
@@ -312,9 +358,11 @@ Aciona undo por item ou sessao usando snapshot. Se nao houver snapshot, so usa d
 
 ## Tipos planejados para fases futuras
 
+O `OperationType.RegistryValue` ja existe na Fase 5, mas apenas para os targets fixos do Catalog V1. Qualquer Registry fora dessa allowlist continua futuro e deve passar pelo mesmo contrato transacional.
+
 Fora da prova controlada da Fase 4, os tipos abaixo permanecem planejados para fases futuras e exigem handlers especificos, validação, snapshot, verify e rollback antes de qualquer uso real:
 
-- Registry read/set/delete fora da chave de integracao;
+- Registry read/set/delete fora dos targets canonicos do Catalog V1;
 - Service read/start/stop/set startup type;
 - Powercfg read/create/duplicate/activate/delete;
 - DISM optional feature query/enable/disable;
@@ -390,20 +438,21 @@ Mecanismo:
 
 ### Basico - Safe Boost
 
-- somente Safe;
+- somente itens Safe, compativeis e `Automatic`;
 - sem alteracao agressiva de seguranca;
-- foco em limpeza, inicializacao, configuracoes conservadoras.
+- nao aplica automaticamente preferencias pessoais de UX, privacidade ou atalhos.
 
 ### Medio - Performance
 
-- Safe + Advanced bem documentadas;
-- recomendacao padrao;
+- itens Safe + Medium `Automatic` bem documentados;
+- itens `OptIn` podem aparecer como `RequiresConfirmation`;
 - sem Experimental;
 - sem desabilitar protecoes criticas.
 
-### Avancado - Extreme Performance
+### Avancado - Controle Tecnico
 
-- pode incluir Aggressive compativel;
+- pode expor Advanced/Aggressive compativel somente com confirmacao explicita;
+- nao interpreta Advanced como "selecionar tudo";
 - modal de risco;
 - confirmacao explicita;
 - nunca inclui tweak irresponsavel.

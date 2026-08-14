@@ -6,6 +6,7 @@ using BorealBoost.Core.Identity;
 using BorealBoost.Core.Optimization;
 using BorealBoost.Infrastructure.AgentIpc;
 using BorealBoost.Optimization.Catalog;
+using BorealBoost.Optimization.Planning;
 using Microsoft.Extensions.Logging;
 
 namespace BorealBoost.App.Agent;
@@ -16,10 +17,14 @@ public sealed class AgentBootstrapService : IAgentBootstrapService, IAgentOperat
     private static readonly TimeSpan PipeOperationTimeout = TimeSpan.FromSeconds(10);
 
     private readonly ILogger<AgentBootstrapService> _logger;
+    private readonly IOptimizationCatalog _catalog;
 
-    public AgentBootstrapService(ILogger<AgentBootstrapService> logger)
+    public AgentBootstrapService(
+        ILogger<AgentBootstrapService> logger,
+        IOptimizationCatalog catalog)
     {
         _logger = logger;
+        _catalog = catalog;
     }
 
     public Task<Result<ValidateOperationResponsePayload>> ValidateOperationAsync(
@@ -31,7 +36,7 @@ public sealed class AgentBootstrapService : IAgentBootstrapService, IAgentOperat
             MessageType.ValidateOperationRequest,
             PayloadType.ValidateOperationRequest,
             MessageType.ValidateOperationResponse,
-            new ValidateOperationRequestPayload("4.0.0", BuiltInOptimizationCatalog.CurrentCatalogVersion, optimizationId, operation),
+            new ValidateOperationRequestPayload(ExecutionPlanner.PlanSchemaVersion, BuiltInOptimizationCatalog.CurrentCatalogVersion, optimizationId, operation),
             cancellationToken);
     }
 
@@ -44,7 +49,7 @@ public sealed class AgentBootstrapService : IAgentBootstrapService, IAgentOperat
             MessageType.CaptureSnapshotRequest,
             PayloadType.CaptureSnapshotRequest,
             MessageType.CaptureSnapshotResponse,
-            new CaptureSnapshotRequestPayload("4.0.0", BuiltInOptimizationCatalog.CurrentCatalogVersion, optimizationId, operation),
+            new CaptureSnapshotRequestPayload(ExecutionPlanner.PlanSchemaVersion, BuiltInOptimizationCatalog.CurrentCatalogVersion, optimizationId, operation),
             cancellationToken);
     }
 
@@ -58,7 +63,7 @@ public sealed class AgentBootstrapService : IAgentBootstrapService, IAgentOperat
             MessageType.ExecuteOperationRequest,
             PayloadType.ExecuteOperationRequest,
             MessageType.ExecuteOperationResponse,
-            new ExecuteOperationRequestPayload("4.0.0", BuiltInOptimizationCatalog.CurrentCatalogVersion, optimizationId, operation, snapshotItem),
+            new ExecuteOperationRequestPayload(ExecutionPlanner.PlanSchemaVersion, BuiltInOptimizationCatalog.CurrentCatalogVersion, optimizationId, operation, snapshotItem),
             cancellationToken);
     }
 
@@ -71,7 +76,7 @@ public sealed class AgentBootstrapService : IAgentBootstrapService, IAgentOperat
             MessageType.VerifyOperationRequest,
             PayloadType.VerifyOperationRequest,
             MessageType.VerifyOperationResponse,
-            new VerifyOperationRequestPayload("4.0.0", BuiltInOptimizationCatalog.CurrentCatalogVersion, optimizationId, operation),
+            new VerifyOperationRequestPayload(ExecutionPlanner.PlanSchemaVersion, BuiltInOptimizationCatalog.CurrentCatalogVersion, optimizationId, operation),
             cancellationToken);
     }
 
@@ -85,7 +90,7 @@ public sealed class AgentBootstrapService : IAgentBootstrapService, IAgentOperat
             MessageType.RollbackOperationRequest,
             PayloadType.RollbackOperationRequest,
             MessageType.RollbackOperationResponse,
-            new RollbackOperationRequestPayload("4.0.0", BuiltInOptimizationCatalog.CurrentCatalogVersion, optimizationId, operation, snapshotItem),
+            new RollbackOperationRequestPayload(ExecutionPlanner.PlanSchemaVersion, BuiltInOptimizationCatalog.CurrentCatalogVersion, optimizationId, operation, snapshotItem),
             cancellationToken);
     }
 
@@ -227,7 +232,8 @@ public sealed class AgentBootstrapService : IAgentBootstrapService, IAgentOperat
             return Result<TPayload>.Failure("agent.path.not_found", "BorealBoost.Agent executable was not found.");
         }
 
-        using var process = StartAgent(agentPath, pipeName, sessionId, bootstrapNonce, requireElevation: true);
+        var requiresElevation = RequiresElevation(payload);
+        using var process = StartAgent(agentPath, pipeName, sessionId, bootstrapNonce, requiresElevation);
         if (process is null)
         {
             return Result<TPayload>.Failure("agent.start.failed", "BorealBoost.Agent could not be started.");
@@ -353,6 +359,22 @@ public sealed class AgentBootstrapService : IAgentBootstrapService, IAgentOperat
         startInfo.ArgumentList.Add(ProtocolVersion.Current.ToString());
 
         return Process.Start(startInfo);
+    }
+
+    private bool RequiresElevation(object payload)
+    {
+        var optimizationId = payload switch
+        {
+            ValidateOperationRequestPayload request => request.OptimizationId,
+            CaptureSnapshotRequestPayload request => request.OptimizationId,
+            ExecuteOperationRequestPayload request => request.OptimizationId,
+            VerifyOperationRequestPayload request => request.OptimizationId,
+            RollbackOperationRequestPayload request => request.OptimizationId,
+            _ => default
+        };
+
+        return optimizationId != default &&
+               _catalog.Find(optimizationId)?.RequiresElevation == true;
     }
 
     private static bool IsCurrentProcessElevated()

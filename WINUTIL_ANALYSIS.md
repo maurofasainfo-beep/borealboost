@@ -161,6 +161,31 @@ WinUtil usa MIT. Se qualquer codigo, trecho ou recurso for reutilizado no futuro
 
 Nesta sessao: nenhum codigo WinUtil foi incorporado.
 
+## Fase 5 - Classificacao de candidatos
+
+WinUtil foi mantido apenas como referencia secundaria de categorias. Nenhum codigo, UI, script ou lista de tweaks foi copiado.
+
+Classificacao aplicada no Catalog V1:
+
+| Tema | Decisao | Motivo |
+| --- | --- | --- |
+| File extensions visiveis | Adapt as CustomOnly | Preferencia de UX/visibilidade, baixo risco e rollback por Registry; nao e performance. |
+| AutoPlay disable | Adapt | Configuracao documentada, baixo risco e reversivel. |
+| Transparencia | Adapt | Ajuste visual opcional, impacto qualitativo baixo e reversivel. |
+| Start recommendations / layout | Adapt as OptIn/CustomOnly | Configuracoes Windows 11 documentadas, foco em UX/privacy, sem claim de FPS. |
+| Game Bar shortcuts | Adapt as OptIn | Preferencias de atalho/captura, reversiveis, nao classificadas como performance. |
+| Advertising ID | Adapt as OptIn | Privacy policy, nao performance; Medium e sem SecurityTradeoff. |
+| Game DVR policy | Adapt as AdvancedOnly | Windows 10 desktop-only, gaming performance workload-dependent, RequiresConfirmation e RequiresElevation. |
+| Defender disable/exclusions | Reject | Reducao de seguranca critica. |
+| Firewall disable | Reject | Reducao de seguranca critica. |
+| Windows Update disable | Reject | Quebra servicing/security. |
+| BCD/timer/HPET hacks | Reject | Alto risco e evidencia insuficiente para uso universal. |
+| Pagefile disable | Reject | Risco de commit/crash dumps e workload dependent. |
+| Service disable lists | Deferred | Exige modelo ServiceOptimizationDefinition e denylist critica. |
+| Debloat/AppX removal | Deferred | Rollback pode ser parcial e pode afetar dados/features do usuario. |
+| Ultimate Performance/power plan | Deferred | Exige handler Power e validacao desktop/notebook/OEM. |
+| DNS/netsh/TCP tweaks | Deferred/Reject generic | Nao ha beneficio universal defensavel; DNS nao e FPS boost. |
+
 ## Melhorias que BorealBoost deve fazer
 
 - Catalogo com schema mais rigoroso.
@@ -181,4 +206,3 @@ Nesta sessao: nenhum codigo WinUtil foi incorporado.
 - Revisar cada tweak candidato individualmente antes de criar catalogo real.
 - Validar licenca de O&O ShutUp10++ se houver intencao de integrar.
 - Verificar futuras mudancas do WinUtil antes de qualquer reaproveitamento.
-

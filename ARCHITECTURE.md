@@ -1,7 +1,7 @@
 # BorealBoost - Architecture
 
-Data: 2026-08-12
-Status: arquitetura aprovada; Fases 1, 2, 3 e 4 implementadas.
+Data: 2026-08-13
+Status: arquitetura aprovada; Fases 1, 2, 3, 4 e 5 implementadas.
 
 ## Visao geral
 
@@ -19,7 +19,7 @@ A UI nunca deve conter logica de tweak. Ela orquestra casos de uso e apresenta e
 - Logging estruturado: Serilog ou Microsoft.Extensions.Logging com sinks locais, decisao final na Fase 1.
 - Persistencia local: arquivos JSON estruturados em V1; SQLite fica pendente caso consultas e historico crescam.
 - Installer V1: MSI via WiX Toolset, com avaliacao futura de MSIX.
-- Arquitetura de privilegio: UI sem privilegio + `BorealBoost.Agent` elevado por sessao, obrigatorio.
+- Arquitetura de privilegio: UI sem privilegio + `BorealBoost.Agent` obrigatorio; Agent elevado quando a operacao exigir privilegio.
 
 ## Projetos propostos
 
@@ -43,7 +43,7 @@ A UI nunca deve conter logica de tweak. Ela orquestra casos de uso e apresenta e
 
 `App` depende de contratos de `Core`, casos de uso ja implementados de `Analysis`, `Optimization` e `Restore`, alem de comunicacao com `Agent`. Dependencias de `Drivers`, `Benchmark` e `Reporting` permanecem futuras.
 
-`Agent` executa operacoes privilegiadas chamando apenas handlers tipados allowlisted. Na Fase 4 implementada ele referencia `Core`, `Infrastructure`, `Optimization` e `System`; chamadas de `Restore`, `Drivers` e outros modulos dependem das fases futuras correspondentes.
+`Agent` executa operacoes privilegiadas chamando apenas handlers tipados allowlisted. Na Fase 5 implementada ele referencia `Core`, `Infrastructure`, `Optimization` e `System`; chamadas de `Restore`, `Drivers` e outros modulos dependem das fases futuras correspondentes.
 
 `Core` nao depende de Windows, UI, storage, logging concreto ou PowerShell.
 
@@ -222,9 +222,50 @@ Correcoes de revalidacao da Fase 4:
 - `PlanHash` torna plano aprovado imutavel para campos transacionais;
 - lock cross-process impede sessoes simultaneas entre duas instancias do App.
 
+## Optimization Catalog - Fase 5
+
+A Fase 5 adiciona o primeiro catalogo real, pequeno e defensavel. Ela nao altera a arquitetura transacional da Fase 4; apenas amplia o catalogo built-in e permite que a pagina `Otimizacao` componha presets reais.
+
+Distribuicao por camadas:
+
+- `Core`: campos adicionais de `OptimizationDefinition`, `CatalogManifestMetadata`, `OptimizationPresetSelection` e allowlist canonica de Registry.
+- `Optimization`: `BuiltInOptimizationCatalog` V1, `OptimizationPresetEngine`, validacao de definicao, canonical OperationSpec validator e planejamento.
+- `System`: mesmo handler de Registry controlado, agora instanciado tambem para `OperationType.RegistryValue`.
+- `Agent`: revalida cada operacao recebida contra a definicao canonica do catalogo built-in, alem da allowlist de target/desired state.
+- `App`: preset preview Basic/Medium/Advanced/Custom, Review Plan, Dry Run e execucao somente de itens `Selected`.
+
+Catalog V1:
+
+- `schemaVersion = 5.1.0`;
+- `catalogVersion = 5.1.0-built-in-v1`;
+- 12 OptimizationDefinitions reais, excluindo a prova de integracao;
+- 6 Safe, 5 Medium, 1 Advanced, 0 Aggressive/Experimental;
+- 12 reversiveis por `SnapshotRestore`;
+- 0 SecurityTradeoff;
+- 0 reboot automatico;
+- classificacao explicita por `TechnicalCategory`, `PerformanceRelevance`, `AutomaticPresetSuitability`, `ConfigurationMechanism`, `ActivationBoundary`, `VerificationLevel` e `RollbackValidationLevel`;
+- detalhes em `OPTIMIZATION_CATALOG.md`.
+
+Operacoes reais permitidas:
+
+- somente `OperationType.RegistryValue`;
+- targets fixos em `TrustedRegistryOperationTargets.CatalogV1`;
+- desired state fixo no catalogo;
+- `RegistryValue` fora da allowlist e rejeitado pelo Planner, Agent e handler.
+
+Preset policy:
+
+- Basic seleciona somente itens `Automatic` que sejam Safe, reversiveis, sem reboot, sem Experimental e sem SecurityTradeoff;
+- Medium seleciona itens `Automatic` Safe/Medium e mostra itens `OptIn` compativeis como `RequiresConfirmation`;
+- Advanced pode mostrar itens `AdvancedOnly`/maior risco compativeis como `RequiresConfirmation`, nao como selecao automatica silenciosa;
+- Custom expoe preferencias compativeis, mas nao bypassa `Blocked`;
+- AnalysisResult stale ou Windows/build Unknown bloqueia selecao automatica.
+
+Itens rejeitados nesta fase incluem Defender disable, Firewall disable, Windows Update permanent disable, pagefile disable, HPET/BCD/timer hacks, netsh/TCP universal, service disable lists, debloat AppX, OneDrive removal e driver registry hacks.
+
 ## Contrato arquitetural do BorealBoost.Agent
 
-`BorealBoost.Agent` e requisito arquitetural da V1. O aplicativo inteiro elevado nao e fallback aceito. A UI deve permanecer sem privilegio permanente; toda operacao administrativa passa pelo Agent elevado e pelo ExecutionPlan validado.
+`BorealBoost.Agent` e requisito arquitetural da V1. O aplicativo inteiro elevado nao e fallback aceito. A UI deve permanecer sem privilegio permanente; toda operacao administrativa passa pelo Agent elevado e pelo ExecutionPlan validado. Operacoes nao administrativas tambem passam pelo Agent, mas podem usar token nao elevado quando isso for necessario para preservar o escopo correto do usuario, como HKCU.
 
 ### Trust boundary
 
@@ -238,15 +279,16 @@ A fronteira de confianca fica entre `BorealBoost.App` e `BorealBoost.Agent`.
 ### Lifecycle
 
 1. App cria `sessionId`, `correlationId` inicial e nonce de bootstrap em memoria.
-2. App solicita elevacao do binario instalado e conhecido `BorealBoost.Agent` usando mecanismo Windows apropriado de UAC.
-3. Agent inicia elevado, cria named pipe local de sessao e aguarda handshake.
-4. App conecta, executa handshake autenticado e negocia `protocolVersion`.
-5. Agent aceita somente uma sessao ativa por instancia.
-6. Agent processa requisicoes allowlisted, persiste journal transacional e retorna resultados estruturados.
-7. Agent encerra apos commit/rollback, cancelamento confirmado ou idle timeout.
-8. Se Agent cair, App marca a sessao como `Interrupted` e o recovery sera feito na proxima inicializacao antes de qualquer nova execucao.
+2. App resolve o binario instalado e conhecido `BorealBoost.Agent`.
+3. Se a definicao canonica declarar `RequiresElevation=true`, App solicita elevacao via UAC; caso contrario inicia o Agent sem elevacao.
+4. Agent cria named pipe local de sessao e aguarda handshake.
+5. App conecta, executa handshake autenticado e negocia `protocolVersion`.
+6. Agent aceita somente uma sessao ativa por instancia.
+7. Agent processa requisicoes allowlisted, persiste journal transacional e retorna resultados estruturados.
+8. Agent encerra apos commit/rollback, cancelamento confirmado ou idle timeout.
+9. Se Agent cair, App marca a sessao como `Interrupted` e o recovery sera feito na proxima inicializacao antes de qualquer nova execucao.
 
-### Inicio elevado pelo App
+### Inicio pelo App
 
 O App so pode iniciar o Agent a partir do caminho instalado e registrado pelo instalador. O caminho do executavel do Agent nao pode vir de input da UI, catalogo externo ou argumento editavel pelo usuario.
 

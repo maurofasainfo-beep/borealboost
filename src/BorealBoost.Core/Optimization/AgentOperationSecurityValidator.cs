@@ -27,9 +27,9 @@ public sealed class AgentOperationSecurityValidator
             return Result.Failure("agent.operation.type_unknown", "OperationType is unknown.");
         }
 
-        if (operation.OperationType != OperationType.BorealIntegrationRegistryValue)
+        if (operation.OperationType is not (OperationType.BorealIntegrationRegistryValue or OperationType.RegistryValue))
         {
-            return Result.Failure("agent.operation.type_not_allowed", "OperationType is not allowlisted for Phase 4.");
+            return Result.Failure("agent.operation.type_not_allowed", "OperationType is not allowlisted for the trusted BorealBoost catalog.");
         }
 
         if (operation.RegistryValue is null)
@@ -38,9 +38,9 @@ public sealed class AgentOperationSecurityValidator
         }
 
         var target = operation.RegistryValue.Target;
-        if (target.Hive != RegistryHiveKind.CurrentUser)
+        if (target.Hive is not (RegistryHiveKind.CurrentUser or RegistryHiveKind.LocalMachine))
         {
-            return Result.Failure("agent.operation.hive_not_allowed", "Only HKCU is allowed for the Phase 4 integration operation.");
+            return Result.Failure("agent.operation.hive_not_allowed", "Registry hive is not allowlisted for trusted operations.");
         }
 
         if (!Enum.IsDefined(target.View))
@@ -48,16 +48,28 @@ public sealed class AgentOperationSecurityValidator
             return Result.Failure("agent.operation.registry_view_invalid", "Registry view is invalid.");
         }
 
-        if (!IsAllowedText(target.KeyPath, MaxTargetLength) ||
-            !string.Equals(target.KeyPath, IntegrationTestKeyPath, StringComparison.Ordinal))
+        if (!IsAllowedText(target.KeyPath, MaxTargetLength))
         {
-            return Result.Failure("agent.operation.target_not_allowed", "Registry target is outside the BorealBoost integration-test allowlist.");
+            return Result.Failure("agent.operation.target_not_allowed", "Registry target is outside the BorealBoost allowlist.");
         }
 
-        if (!IsAllowedText(target.ValueName, MaxValueNameLength) ||
-            !string.Equals(target.ValueName, IntegrationTestValueName, StringComparison.Ordinal))
+        if (!IsAllowedText(target.ValueName, MaxValueNameLength))
         {
-            return Result.Failure("agent.operation.value_name_not_allowed", "Registry value name is outside the BorealBoost integration-test allowlist.");
+            return Result.Failure("agent.operation.value_name_not_allowed", "Registry value name is outside the BorealBoost allowlist.");
+        }
+
+        if (operation.OperationType == OperationType.BorealIntegrationRegistryValue)
+        {
+            if (target.Hive != RegistryHiveKind.CurrentUser ||
+                !string.Equals(target.KeyPath, IntegrationTestKeyPath, StringComparison.Ordinal) ||
+                !string.Equals(target.ValueName, IntegrationTestValueName, StringComparison.Ordinal))
+            {
+                return Result.Failure("agent.operation.target_not_allowed", "Registry target is outside the BorealBoost integration-test allowlist.");
+            }
+        }
+        else if (!TrustedRegistryOperationTargets.IsTrustedCatalogOperation(operation))
+        {
+            return Result.Failure("agent.operation.target_not_allowed", "Registry target or desired state is not present in the trusted catalog allowlist.");
         }
 
         var desired = operation.RegistryValue.DesiredState;
@@ -143,7 +155,7 @@ public sealed class AgentOperationSecurityValidator
 
         if (operation.RollbackStrategy.Kind != OperationRollbackKind.SnapshotRestore)
         {
-            return Result.Failure("agent.operation.rollback_invalid", "Phase 4 integration operation must rollback from snapshot.");
+            return Result.Failure("agent.operation.rollback_invalid", "Trusted registry operations must rollback from snapshot.");
         }
 
         return Result.Success();

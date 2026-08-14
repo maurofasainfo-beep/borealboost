@@ -1,7 +1,7 @@
 # BorealBoost - Domain Model
 
-Data: 2026-08-12
-Status: modelo conceitual com contratos implementados para Foundation, System Scanner, Analysis/Recommendation Engine e Optimization/Rollback Foundation.
+Data: 2026-08-13
+Status: modelo conceitual com contratos implementados para Foundation, System Scanner, Analysis/Recommendation Engine, Optimization/Rollback Foundation e Optimization Catalog V1.
 
 ## Agregados principais
 
@@ -197,15 +197,33 @@ Invariantes da Fase 3:
 
 Entrada declarativa do catalogo.
 
-Na Fase 4, o modelo implementado inclui:
+Na Fase 5, o modelo implementado inclui:
 
 - `OptimizationId`;
 - `Version`;
 - `Title`;
 - `Description`;
 - `Category`;
+- `TechnicalCategory`;
 - `RiskLevel`;
 - `EvidenceLevel`;
+- `ConfigurationEvidence`;
+- `ExpectedImpact`;
+- `PerformanceRelevance`;
+- `AutomaticPresetSuitability`;
+- `UserPreferenceImpact`;
+- `ConfigurationMechanism`;
+- `ActivationBoundary`;
+- `VerificationLevel`;
+- `RollbackValidationLevel`;
+- `Windows10ValidationLevel`;
+- `Windows11ValidationLevel`;
+- `ImpactAreas`;
+- `SideEffects`;
+- `EvidenceReferences`;
+- `PresetEligibility`;
+- `IsSecurityTradeoff`;
+- `RequiresUserConfirmation`;
 - `SupportedWindows`;
 - `CompatibilityRequirements`;
 - `RequiredCapabilities`;
@@ -223,7 +241,14 @@ Na Fase 4, o modelo implementado inclui:
 - `TimeoutPolicy`;
 - `SourceMetadata`.
 
-O catalogo built-in da Fase 4 possui apenas `BB.OPT.INTEGRATION.REGISTRY_PROOF`. Ele nao representa tweak de performance.
+O catalogo built-in da Fase 5 possui:
+
+- `schemaVersion = 5.1.0`;
+- `catalogVersion = 5.1.0-built-in-v1`;
+- 12 OptimizationDefinitions reais;
+- 1 `BB.OPT.INTEGRATION.REGISTRY_PROOF` interno, excluido dos presets.
+
+As definicoes reais estao documentadas em `OPTIMIZATION_CATALOG.md`.
 
 Campos obrigatorios:
 
@@ -260,6 +285,15 @@ Campos obrigatorios:
 
 Conjunto validado de definicoes de otimizacao.
 
+Na Fase 5, `CatalogManifestMetadata` implementado inclui:
+
+- `SchemaVersion`;
+- `CatalogVersion`;
+- `Publisher`;
+- `Source`;
+- `ContentHash`;
+- `BuiltAtUtc`.
+
 Campos:
 
 - schemaVersion;
@@ -292,7 +326,7 @@ Regras:
 
 Define uma operacao atomica modelada.
 
-Na Fase 4, `OperationSpec` implementado declara:
+Na Fase 5, `OperationSpec` implementado declara:
 
 - `OperationId`;
 - `OperationType`;
@@ -307,7 +341,12 @@ Na Fase 4, `OperationSpec` implementado declara:
 - `rollbackStrategy`;
 - `snapshotRequirements`.
 
-A unica operacao real allowlisted e `BorealIntegrationRegistryValue`, restrita a `HKCU\Software\BorealBoost\IntegrationTest\Phase4ControlledValue`.
+Operacoes reais allowlisted:
+
+- `BorealIntegrationRegistryValue`, restrita a `HKCU\Software\BorealBoost\IntegrationTest\Phase4ControlledValue`;
+- `RegistryValue`, restrita aos targets fixos de `TrustedRegistryOperationTargets.CatalogV1`.
+
+`RegistryValue` nao aceita path/target/value vindos livremente da UI. A OperationSpec recebida pelo Agent precisa coincidir com `OptimizationId`, `OperationId`, `OperationType`, target, desired state, timeout, retry, snapshot, reversibilidade e rollback da definicao canonica.
 
 Tipos:
 
@@ -368,6 +407,51 @@ Saidas:
 - NeedsConfirmation;
 - NotApplicable;
 - Unknown.
+
+### OptimizationPresetSelection
+
+Resultado deterministico de aplicar uma politica de preset ao catalogo.
+
+Campos implementados:
+
+- `Preset`;
+- `CatalogVersion`;
+- `Items`.
+
+Cada item contem:
+
+- `OptimizationId`;
+- `Title`;
+- `Category`;
+- `TechnicalCategory`;
+- `RiskLevel`;
+- `EvidenceLevel`;
+- `ConfigurationEvidence`;
+- `ExpectedImpact`;
+- `PerformanceRelevance`;
+- `AutomaticPresetSuitability`;
+- `UserPreferenceImpact`;
+- `ConfigurationMechanism`;
+- `ActivationBoundary`;
+- `VerificationLevel`;
+- `RollbackValidationLevel`;
+- `ImpactAreas`;
+- `PresetEligibility`;
+- `Status`: `Selected`, `Excluded`, `Blocked`, `NotApplicable` ou `RequiresConfirmation`;
+- `Reason`;
+- `RequiresRestart`;
+- `SupportsUndo`;
+- `IsSecurityTradeoff`.
+
+Invariantes:
+
+- `AnalysisResult.ScanId` deve corresponder ao `SystemSnapshot.Metadata.ScanId`;
+- Basic seleciona somente itens `Automatic` Safe compativeis;
+- Basic/Medium nao selecionam SecurityTradeoff nem preferencias pessoais sem politica de opt-in;
+- Medium seleciona itens `Automatic` e mostra itens `OptIn` como `RequiresConfirmation`;
+- Unknown compatibility/evidence nao vira selecao automatica;
+- Custom nao bypassa `Blocked`;
+- Advanced/Aggressive/confirmation-required ficam em `RequiresConfirmation` ate existir confirmacao explicita.
 
 ### ExecutionPlan
 

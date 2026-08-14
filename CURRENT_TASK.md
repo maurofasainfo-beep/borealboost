@@ -1,14 +1,15 @@
 # CURRENT_TASK.md
-# BorealBoost — Fase 4
-# Optimization Engine + Safety + Snapshot + Rollback
+# BorealBoost — Fase 5
+# Optimization Catalog — Basic + Medium + Advanced/Aggressive + Custom
 
-> Fases 0, 1, 2 e 3: APROVADAS.
+> Fases 0, 1, 2, 3 e 4: APROVADAS.
 >
-> Esta é a primeira fase que introduz infraestrutura capaz de modificar o Windows.
+> A infraestrutura de execução, safety, snapshot, verification, rollback,
+> recovery, Agent e concorrência foi aprovada.
 >
-> Segurança, atomicidade, validação, recuperação e rollback têm prioridade sobre quantidade de funcionalidades.
+> Esta é a primeira fase destinada a implementar otimizações reais.
 >
-> NÃO implementar o catálogo amplo de otimizações da Fase 5.
+> Não transformar o BorealBoost em uma coleção de tweaks aleatórios.
 
 ---
 
@@ -20,14 +21,14 @@ Concluído:
 ✅ FASE 1 — Foundation
 ✅ FASE 2 — System Scanner
 ✅ FASE 3 — Analysis + Recommendation Engine
+✅ FASE 4 — Optimization Engine + Safety + Snapshot + Rollback
 
 Fase atual:
 
-🚧 FASE 4 — OPTIMIZATION ENGINE + SAFETY + SNAPSHOT + ROLLBACK
+🚧 FASE 5 — OPTIMIZATION CATALOG
 
 Próximas:
 
-FASE 5 — Optimization Catalog: Safe + Medium + Advanced/Aggressive
 FASE 6 — Drivers + Benchmark + Results + Reporting
 FASE 7 — Installer + Hardening + Production Readiness
 
@@ -35,84 +36,101 @@ FASE 7 — Installer + Hardening + Production Readiness
 
 # 2. OBJETIVO
 
-Construir a infraestrutura segura que permitirá ao BorealBoost executar otimizações reais futuramente.
+Implementar o primeiro catálogo REAL de otimizações do BorealBoost para:
 
-Fluxo alvo:
+- Windows 10;
+- Windows 11;
+- desktops;
+- notebooks;
+- PCs gaming;
+- máquinas de uso geral.
 
+O catálogo deve alimentar o pipeline já aprovado:
+
+SystemSnapshot
+↓
+Analysis
+↓
 Recommendation
 ↓
 OptimizationDefinition
 ↓
-Compatibility Check
+Preset / Custom Selection
 ↓
-Detection
-↓
-Execution Plan
+ExecutionPlan
 ↓
 Preflight
 ↓
-Safety Validation
-↓
 Snapshot
 ↓
-Restore Point Policy
+Agent
 ↓
-Technician Confirmation
+Apply
 ↓
-Privileged Agent
+Verify
 ↓
-Typed Operation
+Journal
 ↓
-Verification
-↓
-Journal / Commit
-↓
-Rollback disponível
+Rollback
 
-Nesta fase, qualidade do motor é mais importante que quantidade de tweaks.
+Nenhuma otimização pode contornar esse pipeline.
 
 ---
 
-# 3. PRINCÍPIO FUNDAMENTAL
+# 3. OBJETIVO DE PRODUTO
 
-Nenhuma modificação no Windows pode acontecer fora do pipeline aprovado.
+O BorealBoost será usado pelo técnico presencialmente nos computadores dos clientes.
 
-PROIBIDO:
+O software deve permitir:
 
-UI
-→ Registry diretamente
+1. analisar a máquina;
+2. identificar oportunidades;
+3. escolher Windows 10 ou Windows 11 quando necessário;
+4. detectar automaticamente quando possível;
+5. selecionar um preset;
+6. revisar o que será alterado;
+7. executar otimizações;
+8. acompanhar progresso real;
+9. verificar resultados;
+10. permitir rollback.
 
-UI
-→ ServiceController diretamente
+Presets principais:
 
-UI
-→ Power diretamente
+BÁSICO
+MÉDIO
+AVANÇADO
 
-UI
-→ shell diretamente
+Além de:
 
-Recommendation
-→ executar diretamente
-
-AnalysisRule
-→ executar diretamente
-
-Todo write futuro deve passar por:
-
-ExecutionPlan
-→ validação
-→ safety
-→ snapshot
-→ Agent
-→ operação tipada
-→ verification
-→ journal
+PERSONALIZADO
 
 ---
 
-# 4. LEITURA OBRIGATÓRIA
+# 4. PRINCÍPIO FUNDAMENTAL
 
-Antes de modificar qualquer código, leia integralmente:
+Uma OptimizationDefinition somente entra no catálogo se puder responder:
+
+- O que detectamos?
+- Por que isso pode ser otimizado?
+- Em quais máquinas isso é válido?
+- Qual é o benefício esperado?
+- Qual é o risco?
+- O que exatamente será alterado?
+- Como verificamos sucesso?
+- Como desfazemos?
+- Exige reboot?
+- Pode afetar segurança?
+- Pode afetar compatibilidade?
+
+Se essas perguntas não puderem ser respondidas:
+
+NÃO incluir automaticamente no catálogo.
+
+---
+
+# 5. LEITURA OBRIGATÓRIA
+
+Antes de implementar qualquer otimização, leia integralmente:
 
 - BOREALBOOST_MASTER_SPEC.md
 - CODEX_BOOTSTRAP.md
@@ -121,1571 +139,1767 @@ Antes de modificar qualquer código, leia integralmente:
 - ARCHITECTURE.md
 - ARCHITECTURE_DECISION_RECORD.md
 - DOMAIN_MODEL.md
+- SYSTEM_SCANNER.md
+- ANALYSIS_ENGINE.md
 - OPTIMIZATION_ENGINE.md
+- OPTIMIZATION_EXECUTION.md
 - ROLLBACK_ENGINE.md
+- ROLLBACK.md
 - SECURITY.md
 - COMPATIBILITY_MATRIX.md
 - IMPLEMENTATION_ROADMAP.md
 - UX_SPECIFICATION.md
-- SYSTEM_SCANNER.md
-- ANALYSIS_ENGINE.md
-- PHASE1_REVALIDATION.md
-- PHASE2_REVALIDATION.md
-- PHASE3_AUDIT.md
-- PHASE3_REVALIDATION.md
+- BOREAL_SCORE.md
+- WINUTIL_ANALYSIS.md
+- PHASE4_AUDIT.md
+- PHASE4_REVALIDATION.md
 
-Depois inspecione integralmente o código existente relacionado a:
+Depois inspecione integralmente:
 
 - Core
+- Analysis
 - Optimization
 - Restore
-- System
 - Infrastructure
+- System
 - Agent
 - App
-- testes
+- tests
 
-Não reimplementar mecanismos já existentes sem necessidade.
-
----
-
-# 5. FASE 4 NÃO É O CATÁLOGO DE TWEAKS
-
-Não transformar esta fase em uma coleção de otimizações.
-
-NÃO adicionar dezenas de:
-
-- Registry tweaks;
-- service tweaks;
-- debloat;
-- AppX removal;
-- network tweaks;
-- gaming tweaks;
-- telemetry tweaks;
-- security tweaks;
-- GPU tweaks.
-
-Fase 4 constrói o MOTOR.
-
-Fase 5 alimentará esse motor com catálogo real.
+Não enfraquecer mecanismos aprovados na Fase 4.
 
 ---
 
-# 6. OPERAÇÕES REAIS NESTA FASE
+# 6. PESQUISA TÉCNICA OBRIGATÓRIA
 
-Para provar o pipeline end-to-end, implementar somente um conjunto mínimo de operações controladas.
+Antes de adicionar uma otimização real, pesquise e valide sua origem.
 
-Prioridade:
+Priorizar:
 
-1. operações simuladas/in-memory;
-2. operações read-only reais;
-3. no máximo operações reais reversíveis extremamente controladas necessárias para validar infraestrutura.
+1. documentação oficial Microsoft;
+2. documentação oficial do fabricante;
+3. APIs/documentação Windows;
+4. comportamento tecnicamente verificável;
+5. projetos reconhecidos apenas como referência secundária.
 
-Não utilizar configuração crítica do Windows como laboratório.
+WinUtil pode ser usado como referência funcional.
 
-Se for necessário validar write real:
+Também podem ser estudadas ideias de ferramentas reconhecidas de otimização, desde que:
 
-- usar alvo de teste explicitamente pertencente ao BorealBoost;
-- preferencialmente chave Registry própria de teste;
-- snapshot obrigatório;
-- verify obrigatório;
-- rollback obrigatório;
-- cleanup obrigatório.
+- não copiar código;
+- não copiar UI;
+- não copiar marca;
+- não importar scripts cegamente;
+- cada técnica seja reavaliada individualmente.
 
-Exemplo aceitável:
+Não assumir:
 
-HKCU\Software\BorealBoost\IntegrationTest
+"WinUtil faz, portanto é seguro."
 
-Não usar nesta fase para teste:
+---
+
+# 7. DOCUMENTAÇÃO DA EVIDÊNCIA
+
+Para cada otimização, registrar:
+
+EvidenceLevel
+
+e:
+
+EvidenceReferences
+
+quando aplicável.
+
+Classificação:
+
+Strong
+Moderate
+Experimental
+Unknown
+
+Unknown:
+
+não entra automaticamente em preset.
+
+Experimental:
+
+somente Advanced/Custom quando tecnicamente justificável.
+
+---
+
+# 8. PROIBIÇÃO DE CLAIMS FALSOS
+
+Não documentar:
+
++30 FPS
++50 FPS
+-20 ms latency
++40% performance
+
+sem benchmark reproduzível e específico.
+
+Utilizar:
+
+ExpectedImpact:
+
+Low
+Moderate
+PotentiallyHigh
+WorkloadDependent
+Unknown
+
+E especificar domínio:
+
+Responsiveness
+BackgroundContention
+Startup
+Storage
+PowerBehavior
+GamingConsistency
+NetworkBehavior
+Privacy
+VisualEffects
+Maintenance
+
+Não chamar tudo de FPS boost.
+
+---
+
+# 9. PRESETS
+
+Implementar política real para:
+
+Basic
+Medium
+Advanced
+Custom
+
+Preset não é lista duplicada de operações.
+
+É uma política de seleção sobre o catálogo.
+
+---
+
+# 10. BASIC
+
+Objetivo:
+
+baixo risco e ampla compatibilidade.
+
+Pode conter somente operações que sejam:
+
+- Safe;
+- reversíveis quando modificadoras;
+- verificáveis;
+- amplamente compatíveis;
+- sem redução relevante de segurança;
+- sem remover funcionalidades importantes;
+- sem comportamento hardware-specific arriscado.
+
+Basic deve ser adequado para cliente comum.
+
+---
+
+# 11. MEDIUM
+
+Objetivo:
+
+otimização mais perceptível sem entrar automaticamente em alterações de alto risco.
+
+Pode conter:
+
+Safe
++
+Medium
+
+desde que compatíveis.
+
+Pode alterar comportamento não essencial do Windows quando:
+
+- benefício for defensável;
+- side effect estiver documentado;
+- rollback existir.
+
+Não reduzir segurança silenciosamente.
+
+---
+
+# 12. ADVANCED
+
+Objetivo:
+
+máxima possibilidade de otimização controlada.
+
+Pode expor:
+
+Safe
+Medium
+Advanced
+Aggressive
+
+Mas Advanced/Aggressive exigem:
+
+- compatibilidade explícita;
+- warning;
+- side effects;
+- confirmation;
+- snapshot;
+- rollback quando tecnicamente possível;
+- indicação clara quando rollback não for perfeito;
+- justificativa técnica.
+
+Advanced NÃO significa:
+
+"sempre melhor".
+
+---
+
+# 13. CUSTOM
+
+Permitir selecionar individualmente OptimizationDefinitions.
+
+Agrupar por categoria.
+
+Mostrar:
+
+- estado;
+- recomendação;
+- risco;
+- evidência;
+- impacto;
+- compatibilidade;
+- reboot;
+- rollback;
+- detalhes.
+
+---
+
+# 14. CATEGORIAS DO CATÁLOGO
+
+Estruturar catálogo para:
+
+System
+Performance
+Gaming
+Power
+Startup
+Services
+Visual
+Storage
+Network
+Privacy
+Windows
+Maintenance
+Security
+Graphics
+
+Não é obrigatório preencher todas com operações reais nesta primeira versão.
+
+Qualidade > quantidade.
+
+---
+
+# 15. IMPLEMENTAÇÃO EM CAMADAS
+
+Não implementar 100 tweaks de uma vez.
+
+Trabalhar em waves.
+
+WAVE A — Safe Foundation
+
+WAVE B — Medium
+
+WAVE C — Advanced
+
+WAVE D — Aggressive / Experimental
+
+Cada wave deve passar testes antes da próxima.
+
+---
+
+# 16. WAVE A — SAFE
+
+Priorizar operações de baixo risco.
+
+Avaliar tecnicamente candidatos como:
+
+- configurações visuais opcionais;
+- redução de animações quando desejado;
+- transparência;
+- algumas opções de background não essenciais;
+- limpeza de recursos temporários quando puder ser feita com segurança;
+- ajustes de startup somente quando item for conhecido e selecionado;
+- configurações de experiência Windows claramente opcionais;
+- power behavior seguro e contextual.
+
+NÃO implementar todos automaticamente.
+
+Pesquisar cada candidato.
+
+---
+
+# 17. VISUAL EFFECTS
+
+Avaliar configurações como:
+
+- animations;
+- transparency;
+- menu effects;
+- taskbar effects;
+- window animation.
+
+Considerar:
+
+PC moderno
+≠
+PC fraco.
+
+Não prometer ganho grande de FPS.
+
+Impacto provável:
+
+responsiveness / UI overhead.
+
+Rollback obrigatório.
+
+---
+
+# 18. BACKGROUND ACTIVITY
+
+Avaliar configurações que realmente reduzam atividade de background.
+
+Não desabilitar componentes essenciais.
+
+Não usar heurística:
+
+"background = ruim".
+
+Considerar:
+
+- Store apps;
+- notifications;
+- sync;
+- gaming dependencies;
+- OEM utilities.
+
+---
+
+# 19. STARTUP
+
+Integrar com análise existente.
+
+Não desabilitar automaticamente tudo.
+
+Itens devem possuir classificação como:
+
+KnownSafeToDisable
+UserApplication
+SystemCritical
+DriverRelated
+SecurityRelated
+Unknown
+
+ou modelo equivalente.
+
+Unknown:
+
+não desabilitar automaticamente.
+
+Security/Driver:
+
+não entrar em preset automático sem justificativa excepcional.
+
+---
+
+# 20. SERVICES
+
+Esta é uma área de alto risco.
+
+Criar ServiceOptimizationDefinition com:
+
+- ServiceName;
+- current startup type;
+- desired startup type;
+- current state;
+- dependencies;
+- dependents;
+- OS/build;
+- feature requirements;
+- side effects;
+- rollback.
+
+NÃO criar lista gigante de "serviços inúteis".
+
+---
+
+# 21. SERVICE SAFETY
+
+Antes de alterar Service:
+
+validar:
+
+- serviço existe;
+- Windows correto;
+- dependências;
+- dependentes;
+- feature associada;
+- hardware relacionado;
+- estado atual;
+- startup type atual.
+
+Nunca assumir que serviço presente é desnecessário.
+
+---
+
+# 22. SERVIÇOS CRÍTICOS
+
+Criar denylist explícita para impedir operações perigosas em serviços críticos.
+
+O Agent deve rejeitar qualquer tentativa de alterar serviço fora do catálogo confiável.
+
+Não depender apenas da UI.
+
+---
+
+# 23. POWER
+
+Criar arquitetura real para power optimizations.
+
+Objetivo futuro inclui perfil BorealBoost Performance.
+
+Mas não assumir:
+
+"100% CPU sempre = melhor gaming."
+
+Considerar:
+
+Desktop
+Laptop
+AC
+Battery
+CPU vendor
+thermal behavior
+sleep
+modern standby
+OEM policies.
+
+---
+
+# 24. BOREALBOOST PERFORMANCE POWER PLAN
+
+Avaliar tecnicamente criação de:
+
+BorealBoost Performance
+
+baseado em plano Windows apropriado.
+
+Requisitos:
+
+- criar sem destruir plano original;
+- guardar GUID anterior;
+- guardar plano ativo anterior;
+- verificar criação;
+- ativar somente com consentimento/preset apropriado;
+- rollback restaura plano anterior;
+- remoção do plano BorealBoost quando undo exigir;
+- evitar duplicatas em execuções repetidas.
+
+Se implementação segura não estiver madura:
+
+adiar para Wave C.
+
+---
+
+# 25. ULTIMATE PERFORMANCE
+
+Não habilitar automaticamente apenas porque existe.
+
+Avaliar:
+
+- disponibilidade;
+- edição Windows;
+- desktop/notebook;
+- consumo;
+- temperatura;
+- comportamento real.
+
+Se entrar:
+
+Advanced/Custom.
+
+Não Basic.
+
+---
+
+# 26. CPU SCHEDULING
+
+Pesquisar cuidadosamente qualquer ajuste relacionado a:
+
+- scheduling;
+- foreground boost;
+- multimedia scheduling;
+- timer behavior;
+- processor power management.
+
+Não implementar "tweak de internet" sem documentação/evidência.
+
+Especial cuidado com:
+
+Win32PrioritySeparation
+SystemResponsiveness
+NetworkThrottlingIndex
+
+e técnicas semelhantes.
+
+Pesquisar antes.
+
+---
+
+# 27. TIMER TWEAKS
+
+Não implementar automaticamente:
+
+- HPET toggles;
+- bcdedit timer modifications;
+- useplatformclock;
+- disabledynamictick;
+- synthetic timer hacks;
+
+sem evidência extremamente forte.
+
+Por padrão:
+
+EXCLUDE.
+
+Qualquer inclusão futura:
+
+Experimental/Aggressive + benchmark necessário.
+
+---
+
+# 28. BCD
+
+Alterações de boot configuration são de alto risco.
+
+Nesta fase:
+
+não usar BCD como parte dos presets automáticos.
+
+Se catalogado apenas para pesquisa:
+
+DisabledByPolicy.
+
+---
+
+# 29. MEMORY
+
+Não implementar tweaks como:
+
+- DisablePagingExecutive;
+- LargeSystemCache;
+- arbitrary pagefile disable;
+- memory compression disable;
+
+apenas porque são populares.
+
+Pesquisar individualmente.
+
+Não desabilitar pagefile automaticamente.
+
+---
+
+# 30. PAGEFILE
+
+Política padrão:
+
+não remover/desabilitar pagefile.
+
+Qualquer recomendação futura deve considerar:
+
+- RAM;
+- crash dumps;
+- commit limit;
+- workload;
+- storage.
+
+Não entrar automaticamente em Basic/Medium.
+
+---
+
+# 31. STORAGE
+
+Avaliar otimizações seguras relacionadas a:
+
+- temporary files;
+- delivery optimization cache quando apropriado;
+- recycle bin apenas com consentimento;
+- storage cleanup;
+- stale temp resources.
+
+Nunca apagar:
+
+- Downloads;
+- Documents;
+- Desktop;
+- user data;
+- game saves;
+- browser profiles;
+- arbitrary AppData.
+
+---
+
+# 32. FILE DELETE SAFETY
+
+Qualquer FileOperation futura deve possuir allowlist estrita.
+
+Proibir:
+
+path arbitrário vindo da UI.
+
+Canonicalizar path.
+
+Validar root.
+
+Impedir:
+
+..\ traversal
+junction escape
+symlink/reparse escape
+
+quando aplicável.
+
+Não implementar FileOperation genérico inseguro.
+
+---
+
+# 33. NETWORK
+
+Tratar "network optimization" com ceticismo técnico.
+
+Não assumir que Registry tweak reduz ping.
+
+Avaliar separadamente:
+
+- DNS;
+- adapter power saving;
+- network throttling;
+- Nagle-related settings;
+- TCP autotuning;
+- RSS;
+- RSC;
+- offloads.
+
+Cada item depende de contexto.
+
+---
+
+# 34. DNS
+
+Se implementar troca de DNS:
+
+não chamar automaticamente de FPS boost.
+
+DNS normalmente afeta resolução de nomes, não latência contínua do jogo.
+
+Deve:
+
+- detectar adapters ativos;
+- preservar configuração original;
+- permitir DHCP/original;
+- verificar;
+- rollback.
+
+Preferencialmente Custom/Medium conforme caso.
+
+---
+
+# 35. TCP/IP
+
+Não aplicar pacote universal de:
+
+netsh tweaks
+
+em todo PC.
+
+Configurações de TCP devem considerar:
+
+- Windows version;
+- adapter;
+- workload;
+- estado atual.
+
+Sem evidência:
+
+não incluir.
+
+---
+
+# 36. GAMING
+
+Criar categoria Gaming com rigor.
+
+Gaming optimization pode focar:
+
+- redução de background contention;
+- power behavior;
+- graphics readiness;
+- Windows gaming features;
+- startup/background;
+- visual overhead;
+- driver readiness futuramente.
+
+Não usar tweak placebo.
+
+---
+
+# 37. GAME MODE
+
+Avaliar estado e comportamento do Windows Game Mode.
+
+Não assumir que desligar ou ligar é universalmente melhor.
+
+Usar documentação Microsoft atual.
+
+Se recomendação depender de versão:
+
+modelar compatibilidade.
+
+---
+
+# 38. GAME DVR / CAPTURE
+
+Avaliar captura/background recording.
+
+Pode haver benefício em desabilitar gravação que o cliente não usa.
+
+Mas isso remove funcionalidade.
+
+Portanto:
+
+- detectar estado;
+- explicar side effect;
+- rollback;
+- não tratar como universal.
+
+---
+
+# 39. HAGS
+
+Hardware-Accelerated GPU Scheduling deve ser tratado como hardware/driver/workload dependent.
+
+Não aplicar universalmente.
+
+Se incluído:
+
+Advanced/Custom ou Conditional.
+
+Não prometer aumento garantido de FPS.
+
+Pode exigir reboot.
+
+---
+
+# 40. GPU VENDOR SETTINGS
+
+Não modificar diretamente configurações específicas NVIDIA/AMD/Intel sem documentação e mecanismo robusto.
+
+Drivers serão aprofundados na Fase 6.
+
+Não criar hacks de Registry do driver.
+
+---
+
+# 41. SECURITY TRADE-OFFS
+
+Esta é uma regra crítica.
+
+Não desabilitar automaticamente:
 
 - Defender;
 - Firewall;
+- Secure Boot;
+- SmartScreen;
+- UAC;
 - VBS;
 - Memory Integrity;
-- serviços críticos;
-- boot configuration;
-- network stack;
-- drivers;
-- AppX;
-- Windows Update;
-- políticas críticas.
+- Credential Guard;
+- exploit protections.
+
+para obter performance.
 
 ---
 
-# 7. MODELO DE OPTIMIZATION DEFINITION
+# 42. SECURITY REDUCTION
 
-Criar/fortalecer OptimizationDefinition.
+Se alguma configuração de segurança for estudada por impacto de performance:
 
-Deve possuir conforme aplicável:
+classificar como:
 
-- OptimizationId
-- Version
-- Title
-- Description
-- Category
-- RiskLevel
-- EvidenceLevel
-- SupportedWindows
-- CompatibilityRequirements
-- RequiredCapabilities
-- Conflicts
-- Dependencies
-- RequiresElevation
-- RequiresRestart
-- SupportsUndo
-- SnapshotRequirements
-- OperationSpecs
-- VerificationSpecs
-- RollbackSpecs
-- FailurePolicy
-- TimeoutPolicy
-- SourceMetadata
+SecurityTradeoff
 
-IDs devem ser estáveis.
+e no mínimo:
 
----
+Advanced/Aggressive.
 
-# 8. OPERATION SPEC
+Exigir:
 
-OperationSpec deve ser declarativo e tipado.
-
-Cada operação deve declarar:
-
-- OperationId
-- OperationType
-- target
-- desired state
-- detection strategy
-- apply strategy
-- verification strategy
-- rollback strategy
-- timeout
-- retry policy
-- idempotency
-- reversibility
-- reboot boundary
-- failure policy
-- required snapshot data
-
-Não permitir:
-
-Command = "qualquer string"
-
-ou equivalente.
-
----
-
-# 9. TIPOS DE OPERAÇÃO
-
-Preparar arquitetura para tipos futuros como:
-
-RegistryOperation
-ServiceOperation
-PowerOperation
-WindowsFeatureOperation
-DnsOperation
-FileOperation
-PackageOperation
-
-Mas NÃO é obrigatório implementar todos operacionalmente nesta fase.
-
-Prefira poucos tipos corretamente modelados.
-
----
-
-# 10. ZERO EXECUÇÃO ARBITRÁRIA
-
-Esta regra continua absoluta.
-
-O Agent NÃO pode receber:
-
-- command line arbitrária;
-- PowerShell arbitrário;
-- script;
-- executable path arbitrário;
-- shell command;
-- cmd;
-- argumentos genéricos para processo externo.
-
-PROIBIDO criar:
-
-ExecuteCommand(string)
-ExecutePowerShell(string)
-ExecuteProcess(string)
-RunShell(string)
-Run(string command)
-
-ou abstrações semanticamente equivalentes.
-
----
-
-# 11. AGENT ALLOWLIST
-
-O Agent deve executar somente operações tipadas e conhecidas.
-
-Fluxo:
-
-OperationType
-↓
-Typed Handler
-↓
-Strict Input Validation
-↓
-Known Windows API / controlled adapter
-
-Tipos desconhecidos:
-
-REJECT.
-
-Versões desconhecidas:
-
-REJECT.
-
-Campos extras perigosos:
-
-REJECT quando apropriado.
-
----
-
-# 12. TRUST BOUNDARY
-
-Tratar App → Agent como fronteira de confiança.
-
-Mesmo que App gere o ExecutionPlan, o Agent não deve confiar cegamente nele.
-
-Agent deve revalidar pelo menos:
-
-- protocolo;
-- sessão;
-- request;
-- OperationType;
-- OptimizationId;
-- OperationId;
-- parâmetros;
-- limites;
-- allowlist;
-- versão;
-- replay;
-- estado esperado quando necessário.
-
-Nunca assumir:
-
-"veio da UI, então é seguro".
-
----
-
-# 13. EXECUTION PLAN
-
-Implementar ExecutionPlanner.
-
-Entrada conceitual:
-
-SystemSnapshot
-AnalysisResult
-RecommendationPlan
-OptimizationDefinitions
-TechnicianSelection
-
-Saída:
-
-ExecutionPlan
-
-ExecutionPlan deve ser imutável após aprovação/início da execução ou possuir mecanismo equivalente seguro.
-
----
-
-# 14. EXECUTION PLAN CONTENT
-
-Incluir:
-
-- PlanId
-- SessionId
-- ScanId
-- AnalysisId
-- CatalogVersion
-- CreatedAtUtc
-- target OS/build
-- selected optimizations
-- ordered operations
-- dependencies
-- conflicts
-- risk summary
-- elevation requirements
-- snapshot requirements
-- reboot boundaries
-- estimated step count
-- warnings
-- blockers
-
-Não estimar ganho de FPS.
-
----
-
-# 15. PLAN VALIDATION
-
-Antes de execução validar:
-
-- IDs únicos;
-- OptimizationIds existentes;
-- OperationIds existentes;
-- dependencies presentes;
-- conflicts ausentes;
+- warning explícito;
+- impacto de segurança;
+- consentimento;
 - compatibilidade;
-- capabilities;
-- OS/build;
-- risk policy;
-- snapshot support;
-- rollback support;
-- handler disponível;
-- versão suportada.
+- rollback;
+- documentação.
 
-Plano inválido:
+Preferência nesta fase:
 
-NÃO EXECUTA.
+não incluir em preset automático.
 
 ---
 
-# 16. TOCTOU / STALE PLAN
+# 43. DEFENDER EXCLUSIONS
 
-O estado da máquina pode mudar entre:
+Não criar exclusões amplas como:
 
-Scan
-→ Analysis
-→ Execution.
+C:\
+Games\
+Steam\
 
-Antes de modificar o sistema, revalidar fatos críticos.
+automaticamente.
 
-Exemplo:
+Isso reduz segurança.
 
-serviço mudou;
-valor Registry mudou;
-Windows rebootou;
-build mudou;
-estado esperado não corresponde mais.
+Por padrão:
 
-Não executar cegamente plano obsoleto.
-
-Definir conceito:
-
-Fresh
-Stale
-NeedsRevalidation
-Blocked
-
-ou equivalente.
+EXCLUDE do catálogo V1.
 
 ---
 
-# 17. DRY RUN
+# 44. TELEMETRY / PRIVACY
 
-Implementar Dry Run real.
+Separar:
 
-Dry Run deve:
+Privacy optimization
 
-- montar plano;
-- validar;
-- detectar estado atual;
-- calcular snapshots necessários;
-- informar operações que seriam executadas;
-- informar reboot;
-- informar riscos;
-- informar blockers.
+de:
 
-Dry Run NÃO pode modificar Windows.
+Performance optimization.
+
+Uma configuração de privacidade não deve ser vendida como FPS tweak sem evidência.
+
+Pode existir categoria Privacy.
 
 ---
 
-# 18. PREFLIGHT
+# 45. WINDOWS UPDATE
 
-Antes de Apply:
+Não desabilitar Windows Update permanentemente.
 
-validar conforme aplicável:
+Pode futuramente existir comportamento controlado durante sessão de benchmark/otimização, mas não nesta fase sem necessidade.
 
-- OS/build;
-- sessão válida;
-- privilégio;
-- plano válido;
-- estado atual;
-- pending reboot;
-- disk space necessário;
-- dependencies;
-- conflicts;
-- snapshot availability;
-- rollback capability;
-- Agent connection;
-- handler support.
-
-Falha crítica de preflight:
-
-não executar.
+Não quebrar servicing do Windows.
 
 ---
 
-# 19. OPTIMIZATION SESSION
+# 46. APPX / DEBLOAT
 
-Criar modelo persistível de OptimizationSession.
+Debloat exige cuidado.
 
-Deve registrar:
+Não remover pacote apenas porque é pré-instalado.
 
-- SessionId
-- PlanId
-- ScanId
-- AnalysisId
-- started/completed timestamps
-- state
-- selected optimizations
-- operation journal
-- snapshots
-- verification results
-- rollback state
-- reboot required
-- failure information
-- app version
-- engine version
-- schema version
+Criar classificação:
 
-Não incluir dados pessoais desnecessários.
-
----
-
-# 20. SESSION STATE MACHINE
-
-Definir state machine explícita.
-
-Exemplo conceitual:
-
-Created
-Planned
-PreflightPassed
-Snapshotting
-Ready
-Executing
-Verifying
-Completed
-CompletedWithWarnings
-Failed
-RollbackPending
-RollingBack
-RolledBack
-RollbackFailed
-Cancelled
-Interrupted
-RecoveryRequired
-
-Transições inválidas devem ser rejeitadas.
-
----
-
-# 21. JOURNAL / WRITE-AHEAD SAFETY
-
-Antes de uma mutação relevante, persistir informação suficiente para recuperar estado.
-
-Não depender de:
-
-"aplico primeiro e salvo depois".
-
-Fluxo conceitual:
-
-capture before state
-↓
-persist snapshot/journal
-↓
-flush durable state
-↓
-apply
-↓
-verify
-↓
-persist result
-
-O objetivo é sobreviver a:
-
-- crash do App;
-- crash do Agent;
-- queda de energia;
-- encerramento inesperado.
-
----
-
-# 22. PERSISTÊNCIA ATÔMICA
-
-Arquivos de sessão/snapshot não devem ser gravados de forma vulnerável a corrupção simples.
-
-Usar estratégia como:
-
-write temp
-↓
-flush
-↓
-atomic replace/rename
-
-quando tecnicamente apropriado.
-
-Não deixar JSON parcialmente gravado ser tratado como sessão válida.
-
----
-
-# 23. SCHEMA VERSION
-
-Persistências devem possuir:
-
-SchemaVersion.
-
-Leitura deve:
-
-- validar schema;
-- rejeitar versão incompatível;
-- não interpretar silenciosamente estrutura desconhecida.
-
----
-
-# 24. INTEGRITY
-
-Avaliar mecanismo de integridade para artefatos críticos locais.
-
-No mínimo detectar corrupção acidental.
-
-Se implementar hash:
-
-- definir exatamente o que é protegido;
-- evitar falsa sensação de autenticidade;
-- distinguir integrity de authenticity.
-
-Não inventar assinatura criptográfica sem infraestrutura adequada.
-
----
-
-# 25. SNAPSHOT
-
-Snapshot deve capturar o estado ANTES da operação.
-
-Cada SnapshotItem deve registrar conforme aplicável:
-
-- SnapshotItemId
-- OperationId
-- ResourceType
-- ResourceIdentity
-- existed before
-- previous value/state
-- value type
-- capture method
-- captured at UTC
-- restoration strategy
-- limitations
-- verification metadata
-
----
-
-# 26. SNAPSHOT NÃO É SYSTEM SNAPSHOT
-
-Separar claramente:
-
-SystemSnapshot
-= fatos de análise da máquina
-
-OperationSnapshot
-= estado reversível de um recurso antes da alteração
-
-Não reutilizar os conceitos de forma ambígua.
-
----
-
-# 27. SNAPSHOT OBRIGATÓRIO
-
-Se operação declara que precisa snapshot e captura falhar:
-
-NÃO EXECUTAR.
-
-Não permitir:
-
-snapshot failed
-→ continue anyway
-
-para operação reversível que depende dele.
-
----
-
-# 28. RESTORE POINT
-
-Implementar RestorePointService de forma controlada se tecnicamente viável e coerente com a arquitetura aprovada.
-
-Restore Point é camada adicional.
-
-NÃO substitui OperationSnapshot.
-
-Fluxo:
-
-OperationSnapshot
-+
-Session Journal
-+
-Restore Point quando aplicável.
-
----
-
-# 29. RESTORE POINT POLICY
-
-Modelar resultados como:
-
-Created
-RecentRestorePointAvailable
-Unavailable
-Disabled
-Failed
-NotRequired
+SafeOptional
+UserFacingOptional
+DependencySensitive
+SystemComponent
 Unknown
 
-ou equivalente.
+Unknown:
 
-Não tratar criação de restore point como garantida.
-
-Se falhar:
-
-seguir FailurePolicy aprovada.
-
-Não continuar silenciosamente.
+não remover automaticamente.
 
 ---
 
-# 30. RESTORE POINT E PROGRESSO
+# 47. APPX REMOVAL
 
-Não inventar percentual de criação de restore point se a API não fornecer progresso real.
+Se AppX entrar no catálogo:
 
-Mostrar etapas reais:
+- detectar instalação;
+- identificar package family;
+- verificar dependências;
+- distinguir provisioned/current user;
+- registrar rollback limitations;
+- não afirmar reversibilidade total quando reinstalação depender da Store/rede.
 
-Preparando...
-Solicitando ponto de restauração...
-Validando...
-Concluído/Falhou.
-
----
-
-# 31. ROLLBACK
-
-Implementar RollbackEngine.
-
-Rollback deve usar:
-
-snapshot real
-
-e não:
-
-"default que provavelmente era o original".
+Não incluir cedo apenas para aumentar quantidade.
 
 ---
 
-# 32. UNDO INDIVIDUAL
+# 48. ONEDRIVE
 
-Operação reversível deve poder declarar:
+Não remover/desinstalar automaticamente.
 
-SupportsUndo
-UndoStrategy
-RequiredSnapshotItems
-VerificationAfterUndo
+Pode conter dados sincronizados do cliente.
 
-Se estado original não puder ser restaurado exatamente:
+Qualquer alteração:
 
-declarar limitação.
+Custom e confirmação explícita.
 
 ---
 
-# 33. SESSION ROLLBACK
+# 49. SEARCH / INDEXING
 
-Rollback de sessão deve ocorrer preferencialmente em ordem inversa das operações aplicadas.
+Não desabilitar Windows Search universalmente.
+
+Impacto depende do usuário.
+
+Pode prejudicar experiência.
+
+Se catalogado:
+
+Conditional/Custom.
+
+---
+
+# 50. PRINT / BLUETOOTH / XBOX ETC.
+
+Não desabilitar serviço porque "o gamer talvez não use".
+
+Scanner deve comprovar contexto suficiente ou usuário deve escolher explicitamente.
 
 Exemplo:
 
-Apply:
-A → B → C
-
-Rollback:
-C → B → A
-
-Respeitar dependências quando necessário.
+não desabilitar Bluetooth em notebook com dispositivo Bluetooth.
 
 ---
 
-# 34. EXTERNAL STATE CHANGE
+# 51. HARDWARE AWARENESS
 
-Antes de rollback:
+Cada optimization deve considerar quando relevante:
 
-comparar estado atual com:
-
-- estado aplicado;
-- estado original.
-
-Classificar:
-
-AppliedStateStillPresent
-AlreadyOriginal
-ChangedExternally
-Unknown
-
-Se recurso mudou externamente depois do BorealBoost:
-
-não sobrescrever cegamente.
-
-Exigir política/decisão segura.
+- Desktop;
+- Laptop;
+- VM;
+- CPU vendor;
+- GPU vendor;
+- integrated/dedicated GPU;
+- storage type;
+- battery;
+- OS;
+- build;
+- edition;
+- capabilities.
 
 ---
 
-# 35. VERIFICATION
+# 52. WINDOWS 10 / WINDOWS 11
 
-Apply retornar sucesso NÃO significa otimização concluída.
+Não usar catálogo único cego.
 
-Depois de cada operação:
+OptimizationDefinition deve declarar compatibilidade.
 
-Verify.
+Testar pelo menos:
 
-Estados conceituais:
+Windows 10 22H2 / build 19045
 
-Verified
-FailedVerification
-ManualVerificationRequired
-NotApplicable
+Windows 11 suportado pelo projeto
 
-FailedVerification não pode virar Success.
+e Unknown/Unsupported.
 
----
-
-# 36. IDEMPOTÊNCIA
-
-Operações devem declarar comportamento idempotente.
-
-Exemplo:
-
-desired state já existe
-→ AlreadySatisfied
-
-e não:
-
-aplicar novamente sem necessidade.
-
-Isso é importante para:
-
-- retry;
-- recovery;
-- execução repetida;
-- rollback.
+Windows 10 continua target legado conforme arquitetura aprovada.
 
 ---
 
-# 37. RETRY
+# 53. DETECTION
 
-Retry somente quando tecnicamente seguro.
-
-Não usar retry genérico para toda mutação.
-
-Cada OperationSpec deve declarar:
-
-RetryAllowed
-MaxAttempts
-RetryableFailures
-
-ou equivalente.
-
-Não repetir operação não idempotente cegamente.
-
----
-
-# 38. TIMEOUT
-
-Cada operação deve possuir timeout coerente.
-
-Timeout não significa automaticamente:
-
-"operação não aconteceu".
-
-Se resultado ficar incerto:
-
-marcar:
-
-OutcomeUnknown
-
-ou equivalente
-
-e bloquear continuidade quando necessário.
-
----
-
-# 39. CANCELLATION
-
-Cancelamento durante execução exige política.
-
-Não interromper mutação no meio de forma insegura.
-
-Definir safe cancellation points:
-
-- antes de operação;
-- depois de operação + verification;
-- entre operações.
-
-Se operação já começou:
-
-permitir que alcance estado consistente quando necessário.
-
----
-
-# 40. FAILURE POLICY
-
-Modelar políticas como:
-
-StopPlan
-ContinueIndependent
-RollbackCurrent
-RollbackSession
-ManualIntervention
-
-ou equivalente.
-
-Não continuar depois de falha crítica sem justificativa.
-
----
-
-# 41. REBOOT BOUNDARY
-
-Preparar arquitetura para operações que exigem reinicialização.
+Toda operação deve detectar estado atual antes de Apply.
 
 Estados:
 
-NoReboot
-RebootRecommended
+AlreadyOptimized
+NeedsChange
+NotApplicable
+Blocked
+Unknown
+
+Unknown:
+
+não executar automaticamente.
+
+---
+
+# 54. ALREADY OPTIMIZED
+
+Se desired state já existe:
+
+não escrever novamente.
+
+Resultado:
+
+AlreadySatisfied
+
+ou equivalente.
+
+Não gerar snapshot/mutação desnecessária quando não necessário.
+
+---
+
+# 55. SNAPSHOT
+
+Toda operação modificadora reversível deve capturar estado original.
+
+Snapshot deve ser:
+
+- específico;
+- suficiente;
+- persistido;
+- verificado;
+- associado à sessão/operação.
+
+Não depender apenas de Restore Point.
+
+---
+
+# 56. ROLLBACK
+
+Toda otimização marcada SupportsUndo deve provar rollback.
+
+Teste mínimo:
+
+Detect
+→ Snapshot
+→ Apply
+→ Verify
+→ Rollback
+→ Verify Original
+
+Se não puder provar:
+
+SupportsUndo=false
+
+e UI deve deixar claro.
+
+---
+
+# 57. EXTERNAL CHANGE
+
+Preservar comportamento aprovado da Fase 4.
+
+Se estado foi alterado externamente após Apply:
+
+não sobrescrever cegamente durante rollback.
+
+---
+
+# 58. AGENT
+
+Toda operação privilegiada passa pelo Agent.
+
+Agent deve validar contra catálogo canônico confiável.
+
+Nunca confiar em:
+
+target vindo da UI
+desired state vindo da UI
+service name vindo da UI
+registry path vindo da UI
+command vindo da UI
+
+sem correspondência exata com definição canônica.
+
+---
+
+# 59. NOVOS HANDLERS
+
+Adicionar handlers somente quando necessários.
+
+Cada handler:
+
+- tipado;
+- pequeno;
+- testável;
+- allowlisted;
+- sem execução genérica.
+
+Possíveis handlers:
+
+Registry
+Service
+Power
+FileCleanup
+
+somente se necessários para as operações aprovadas.
+
+---
+
+# 60. POWERSHELL
+
+Não usar PowerShell como atalho arquitetural.
+
+Preferir:
+
+.NET API
+Win32 API
+documented Windows API
+
+Se uma funcionalidade exigir PowerShell:
+
+usar adapter específico com operação fixa e parâmetros allowlisted.
+
+Nunca:
+
+ExecutePowerShell(string script).
+
+---
+
+# 61. COMMAND-LINE TOOLS
+
+Para ferramentas oficiais como:
+
+powercfg
+DISM
+PnPUtil
+
+se necessárias:
+
+criar adapter específico.
+
+Argumentos devem ser construídos por código a partir de enums/IDs validados.
+
+Não aceitar command line da UI.
+
+---
+
+# 62. PRESET ENGINE
+
+Implementar seleção determinística.
+
+Input:
+
+SystemSnapshot
+AnalysisResult
+Catalog
+Preset
+
+Output:
+
+PresetSelection
+
+Cada item:
+
+Selected
+Excluded
+Blocked
+NotApplicable
+RequiresConfirmation
+
+com razão.
+
+---
+
+# 63. BASIC POLICY
+
+Basic deve excluir:
+
+- Advanced;
+- Aggressive;
+- Experimental;
+- SecurityTradeoff;
+- irreversible;
+- unknown compatibility;
+- unknown detection;
+- hardware-risky;
+- reboot-heavy quando desnecessário.
+
+---
+
+# 64. MEDIUM POLICY
+
+Medium pode incluir:
+
+Safe
+Medium
+
+com:
+
+Strong/Moderate evidence
+
+e compatibilidade suficiente.
+
+Experimental:
+
+não automático.
+
+---
+
+# 65. ADVANCED POLICY
+
+Advanced pode selecionar itens Advanced compatíveis.
+
+Aggressive deve preferencialmente exigir confirmação individual ou grupo explicitamente destacado.
+
+Não esconder riscos.
+
+---
+
+# 66. CUSTOM POLICY
+
+Custom pode expor itens adicionais.
+
+Mas:
+
+Blocked continua impossível de executar.
+
+Custom não significa bypass de segurança.
+
+---
+
+# 67. DEPENDÊNCIAS
+
+Se Optimization A requer B:
+
+planner deve ordenar.
+
+Se B blocked:
+
+A blocked.
+
+Não executar A parcialmente ignorando requisito.
+
+---
+
+# 68. CONFLITOS
+
+Se A conflita com B:
+
+preset não pode selecionar ambos silenciosamente.
+
+UI deve explicar.
+
+---
+
+# 69. REBOOT
+
+Agrupar operações para evitar múltiplos reboots.
+
+Não reiniciar automaticamente.
+
+Ao final:
+
 RebootRequired
 
-Não reiniciar automaticamente nesta fase.
-
-Persistir estado suficiente para futura continuação pós-reboot.
+quando necessário.
 
 ---
 
-# 42. CRASH RECOVERY
+# 70. PROGRESSO
 
-Ao iniciar BorealBoost:
-
-detectar sessões não finalizadas.
-
-Não mostrar sessão Interrupted como Completed.
-
-Classificar e oferecer futuramente:
-
-Inspect
-Resume quando seguro
-Rollback
-ManualRecovery
-
-Nesta fase implementar foundation segura de detecção/recovery.
-
----
-
-# 43. AGENT LIFETIME
-
-Agent elevado deve permanecer limitado à sessão necessária.
-
-Não criar serviço Windows permanente nesta fase.
-
-Não deixar Agent elevado indefinidamente.
-
-Manter:
-
-- handshake;
-- session authentication;
-- replay protection;
-- timeout;
-- shutdown controlado.
-
----
-
-# 44. AGENT OPERATION PROTOCOL
-
-Expandir protocolo atual somente com mensagens tipadas.
-
-Exemplo conceitual:
-
-ValidatePlanRequest
-CaptureSnapshotRequest
-ExecuteOperationRequest
-VerifyOperationRequest
-RollbackOperationRequest
-SessionStatusRequest
-
-Não necessariamente usar exatamente esses nomes.
-
-Não enviar objetos arbitrários sem validação.
-
----
-
-# 45. DEFENSE IN DEPTH
-
-Mesmo que ExecutionPlan tenha sido validado no App:
-
-Agent deve validar novamente operação privilegiada.
-
-O handler deve validar novamente parâmetros críticos.
-
-Camadas:
-
-App validation
-↓
-Plan validation
-↓
-IPC validation
-↓
-Agent validation
-↓
-Operation handler validation
-
----
-
-# 46. REGISTRY OPERATION — PROVA CONTROLADA
-
-Se implementar RegistryOperation nesta fase:
-
-usar APIs .NET/Windows apropriadas.
-
-Suportar de forma tipada:
-
-Read
-Set
-DeleteValue
-
-mas write/delete real somente em alvo explicitamente seguro de integração nesta fase.
-
-Snapshot deve preservar:
-
-- key;
-- value name;
-- existed;
-- previous type;
-- previous value.
-
-Rollback deve restaurar exatamente:
-
-existência + tipo + valor.
-
----
-
-# 47. REGISTRY VIEW
-
-Tratar corretamente quando aplicável:
-
-Registry32
-Registry64
-
-Não depender implicitamente da arquitetura do processo.
-
----
-
-# 48. SERVICE OPERATION
-
-Pode modelar ServiceOperation nesta fase.
-
-Não alterar serviços reais críticos como prova.
-
-Se não houver ambiente de teste seguro:
-
-implementar adapter/contrato + testes controlados.
-
-Não usar produção do Windows como fixture.
-
----
-
-# 49. POWER OPERATION
-
-Pode modelar PowerOperation.
-
-NÃO criar ainda plano agressivo de performance do BorealBoost.
-
-Isso pertence ao catálogo da Fase 5.
-
----
-
-# 50. COMMAND-BASED OPERATIONS
-
-Algumas funções futuras podem exigir ferramentas oficiais do Windows.
-
-Não criar executor genérico.
-
-Se futuramente necessário:
-
-cada ferramenta deve possuir adapter específico e argumentos tipados/allowlisted.
-
-Exemplo conceitual futuro:
-
-PowerCfgAdapter
-
-não:
-
-CommandRunner("powercfg " + userInput)
-
----
-
-# 51. CATALOG FOUNDATION
-
-Preparar foundation do Optimization Catalog.
-
-Catálogo deve ser:
-
-- versionado;
-- schema validated;
-- deterministicamente carregado;
-- IDs únicos;
-- sem operações desconhecidas;
-- compatibilidade validada.
-
-Não preencher catálogo amplo ainda.
-
----
-
-# 52. BUILT-IN VS UPDATED CATALOG
-
-Preservar arquitetura já aprovada para distinguir:
-
-BuiltInCatalog
-UpdatedCatalog
-
-Updated catalog futuramente exigirá:
-
-- assinatura;
-- publisher confiável;
-- version;
-- anti-downgrade;
-- schema.
-
-Nesta fase não implementar atualização remota se ainda não houver infraestrutura de assinatura.
-
----
-
-# 53. NÃO BAIXAR SCRIPTS
-
-Nunca implementar:
-
-download script
-→ execute
-
-Nem:
-
-irm URL | iex
-
-Nem equivalente.
-
-WinUtil é referência funcional, não runtime dependency.
-
----
-
-# 54. UI — OTIMIZAÇÃO
-
-Evoluir página Otimização para suportar foundation real.
-
-Fluxo:
-
-Recommendations
-↓
-Preset/Custom selection
-↓
-Review Plan
-↓
-Dry Run
-↓
-Safety Summary
-↓
-Confirmation
-↓
-Execution
-
-Nesta fase, execução real deve permanecer restrita ao conjunto de prova controlado aprovado.
-
----
-
-# 55. REVIEW PLAN
-
-Antes de executar, UI deve mostrar:
-
-- otimizações selecionadas;
-- quantidade de operações;
-- RiskLevel;
-- warnings;
-- incompatibilidades;
-- reboot;
-- rollback availability;
-- restore point policy.
-
-Itens blocked:
-
-não selecionáveis/executáveis.
-
----
-
-# 56. CONFIRMAÇÃO
-
-Nenhuma operação modificadora deve iniciar simplesmente ao selecionar preset.
-
-Fluxo mínimo:
-
-selecionar
-→ revisar
-→ confirmar
-→ executar
-
-Advanced/Aggressive futuramente exigirão confirmação mais forte.
-
----
-
-# 57. PROGRESSO
-
-Mostrar progresso derivado das operações reais.
+Progresso deve usar operações reais.
 
 Exemplo:
 
 Preparando
-Capturando estado
 Criando proteção
-Aplicando operação 1/3
-Verificando
+Aplicando 3/12
+Verificando 3/12
 Finalizando
 
-Não usar timer fictício.
+Não usar progresso baseado em timer.
 
 ---
 
-# 58. RESULTADOS
+# 71. UI — OTIMIZAÇÃO
 
-Cada operação deve produzir resultado estruturado.
+A página Otimização deve evoluir para uso real.
 
-Incluir conforme aplicável:
+Mostrar:
 
-- OperationId
-- status
-- started/completed UTC
-- duration
-- changed state?
-- verification
-- requires restart
-- error category
-- safe technical details
+Básico
+Médio
+Avançado
+Personalizado
 
-Não exibir stack trace bruto ao cliente.
+Para cada preset:
 
----
-
-# 59. UI — RESTAURAÇÃO
-
-Evoluir página Restaurar para foundation.
-
-Mostrar sessões que realmente possuem estado reversível.
-
-Estados:
-
-Available
-Partial
-RolledBack
-RollbackFailed
-RecoveryRequired
-
-Não criar botão que promete rollback quando snapshot não permite.
+- descrição;
+- risco;
+- quantidade elegível;
+- warnings;
+- reboot;
+- rollback coverage.
 
 ---
 
-# 60. OBSERVABILIDADE
+# 72. BASIC CARD
 
-Logs estruturados devem incluir:
+Exemplo de linguagem:
 
-- SessionId
-- PlanId
-- OperationId
-- OptimizationId
-- action
-- duration
-- outcome
-- verification
-- rollback outcome
+"Alterações de baixo risco e ampla compatibilidade."
 
-Não registrar secrets.
+Não:
 
-Cuidado com valores Registry potencialmente sensíveis.
-
-Aplicar redaction.
+"FPS EXTREMO".
 
 ---
 
-# 61. AUDIT TRAIL
+# 73. MEDIUM CARD
 
-Distinguir:
+Exemplo:
 
-Application Log
+"Otimização equilibrada com alterações adicionais de sistema."
 
-de:
-
-Optimization Journal
-
-Journal deve responder:
-
-- o que pretendíamos fazer?
-- qual era o estado anterior?
-- o que foi executado?
-- qual foi o resultado?
-- foi verificado?
-- houve rollback?
+Mostrar possíveis side effects.
 
 ---
 
-# 62. TESTES UNITÁRIOS
+# 74. ADVANCED CARD
 
-Cobrir pelo menos:
+Exemplo:
 
-- OptimizationDefinition validation
-- OperationSpec validation
-- ExecutionPlan validation
-- unique IDs
-- dependencies
-- conflicts
-- compatibility
-- stale plan
-- state machine
-- invalid state transitions
-- snapshot models
-- rollback ordering
-- idempotency
-- failure policy
-- retry policy
-- reboot boundary
-- schema version
-- corrupted session handling
-- Unknown operation type rejection
+"Configurações avançadas que podem alterar comportamento, recursos ou compatibilidade."
+
+Exigir confirmação clara.
 
 ---
 
-# 63. TESTES DE SEGURANÇA DO AGENT
-
-Adicionar testes negativos para:
-
-- OperationType desconhecido;
-- payload inválido;
-- OptimizationId inválido;
-- OperationId inválido;
-- path/target fora de allowlist;
-- oversized payload;
-- replay;
-- session mismatch;
-- protocol mismatch;
-- tentativa de command injection;
-- tentativa de executable injection;
-- parâmetros extras perigosos.
-
-Agent deve rejeitar.
-
----
-
-# 64. TESTES DE SNAPSHOT
-
-Para operação reversível de prova:
-
-Before
-↓
-Capture
-↓
-Persist
-↓
-Apply
-↓
-Verify
-↓
-Undo
-↓
-Verify original
-
-Testar também:
-
-- recurso inexistente antes;
-- valor existente;
-- tipo diferente;
-- snapshot corrompido;
-- snapshot ausente;
-- falha de persistência.
-
----
-
-# 65. TESTES DE ROLLBACK
-
-Obrigatório testar:
-
-Apply
-Verify
-Undo
-Verify Original State
-
-Também:
-
-A apply
-B apply
-C fail
-↓
-policy rollback
-↓
-B undo
-A undo
-
-quando política assim determinar.
-
----
-
-# 66. TESTE DE CRASH/INTERRUPÇÃO
-
-Simular de forma segura:
-
-- sessão persistida em Executing;
-- operação journaled;
-- processo termina antes de commit.
-
-Ao reabrir:
-
-sessão não pode aparecer Completed.
-
-Deve ser:
-
-Interrupted
-RecoveryRequired
-
-ou estado equivalente.
-
----
-
-# 67. TESTE DE CORRUPÇÃO
-
-Simular:
-
-- JSON truncado;
-- schema incompatível;
-- hash/integrity inválida quando aplicável;
-- snapshot incompleto.
-
-Nunca executar rollback automaticamente com artefato não confiável.
-
----
-
-# 68. TESTE DE CONCORRÊNCIA
-
-Não permitir:
-
-duas OptimizationSessions modificando o mesmo computador simultaneamente.
-
-Implementar exclusão apropriada.
-
-Testar:
-
-- dois Starts;
-- duas UIs;
-- stale lock;
-- crash;
-- recovery.
-
-Não depender apenas de bool em ViewModel.
-
----
-
-# 69. INTEGRATION TEST REAL
-
-Se usar Registry de teste:
-
-executar somente em:
-
-HKCU\Software\BorealBoost\IntegrationTest
-
-ou namespace igualmente seguro e explicitamente próprio.
-
-Fluxo obrigatório:
-
-garantir estado inicial
-→ snapshot
-→ set valor de teste
-→ verify
-→ rollback
-→ verify original
-→ cleanup
-
-Teste deve deixar máquina como encontrou.
-
----
-
-# 70. NÃO USAR HKLM REAL PARA PROVA
-
-Não usar HKLM crítico ou políticas reais apenas para provar elevação.
-
-A elevação/Agent pode ser validada com operação controlada sem mexer em configuração sensível.
-
----
-
-# 71. RESTORE POINT TEST
-
-Restore Point real pode ter impacto no sistema.
-
-Não criar repetidamente durante testes unitários.
-
-Separar:
-
-unit test
-integration test
-manual/system validation
-
-Se executar restore point real:
-
-fazer conscientemente;
-registrar resultado;
-não criar loops de restore points.
-
----
-
-# 72. WINDOWS 10 / WINDOWS 11
-
-OperationDefinition deve suportar restrições por:
-
-- OS;
-- build;
-- architecture;
-- capability.
-
-Não assumir que operação válida no Windows 11 é válida no Windows 10.
-
----
-
-# 73. PRIVACIDADE
-
-Snapshots operacionais podem conter valores sensíveis.
-
-Definir classificação e redaction.
-
-Não logar indiscriminadamente:
-
-OldValue
-NewValue
-
-Alguns recursos devem registrar apenas:
-
-changed=true
-
-ou representação sanitizada.
-
----
-
-# 74. PERFORMANCE
-
-Não otimizar microperformance do engine.
-
-Priorizar:
-
-correctness
-durability
+# 75. CUSTOM
+
+Lista por categorias com:
+
+checkbox
+title
+description
+risk
+impact
+compatibility
 rollback
-security.
+details
 
-Medir apenas:
+Blocked:
 
-- plan creation;
-- persistence;
-- controlled operation execution;
-- rollback.
+checkbox desabilitado.
 
 ---
 
-# 75. ERROR MODEL
+# 76. BEFORE APPLY
 
-Criar categorias estruturadas como:
+Tela Review deve mostrar:
 
-AccessDenied
-NotFound
-Unsupported
-ValidationFailed
-SnapshotFailed
-ApplyFailed
+- preset;
+- itens;
+- operations;
+- risk summary;
+- warnings;
+- security tradeoffs;
+- reboot;
+- restore/snapshot status;
+- rollback coverage.
+
+---
+
+# 77. CONFIRMATION
+
+Basic/Medium:
+
+confirmação normal.
+
+Advanced:
+
+confirmação reforçada.
+
+Aggressive/SecurityTradeoff:
+
+confirmação explícita individual ou equivalente.
+
+---
+
+# 78. AFTER APPLY
+
+Mostrar:
+
+Applied
+AlreadySatisfied
+Skipped
+Blocked
+Failed
 VerificationFailed
-RollbackFailed
-Timeout
 OutcomeUnknown
-ProtocolRejected
-RecoveryRequired
+RollbackAvailable
+RebootRequired
 
-ou modelo equivalente.
+Não mostrar apenas:
 
-Não depender apenas de string de exception.
-
----
-
-# 76. USER-FACING ERRORS
-
-UI:
-
-"Não foi possível concluir esta operação."
-
-Detalhes técnicos podem ser expansíveis.
-
-Log:
-
-erro técnico completo sanitizado.
-
-Não exibir stack trace cru.
+"100% otimizado".
 
 ---
 
-# 77. FASE 5 NÃO DEVE SER INICIADA
+# 79. RESULTS
 
-NÃO implementar agora:
+Preparar dados para Fase 6.
 
-- catálogo amplo Safe;
-- catálogo Medium;
-- catálogo Advanced;
-- catálogo Aggressive;
-- Ultimate Performance real;
-- desativação de serviços;
-- debloat;
-- DNS optimization;
-- gaming tweaks;
-- telemetry catalog;
-- AppX removal catalog;
-- GPU vendor tweaks;
-- network latency catalog.
+Registrar:
 
-Tudo isso pertence à Fase 5.
+BeforeState
+Operation
+AfterState
+Verification
+Duration
+RollbackAvailability
+
+Sem ainda implementar relatório final completo.
 
 ---
 
-# 78. WINUTIL
+# 80. BOREAL SCORE
 
-Pode consultar documentação/código do WinUtil apenas como referência funcional quando necessário.
+Ainda não transformar Boreal Score em claim comercial.
 
-Não copiar cegamente.
+Pode integrar estruturalmente quando já previsto.
 
-Não introduzir:
-
-irm | iex
-
-Não transformar BorealBoost em wrapper do WinUtil.
+Não aumentar score simplesmente porque mais tweaks foram aplicados.
 
 ---
 
-# 79. DOCUMENTAÇÃO
+# 81. CATALOG MANIFEST
 
-Atualizar conforme necessário:
+Criar catálogo estruturado/versionado.
 
-- ARCHITECTURE.md
-- ARCHITECTURE_DECISION_RECORD.md
-- DOMAIN_MODEL.md
-- OPTIMIZATION_ENGINE.md
-- ROLLBACK_ENGINE.md
-- SECURITY.md
-- IMPLEMENTATION_ROADMAP.md
-- UX_SPECIFICATION.md
+Cada definição deve possuir versão.
+
+Catálogo deve possuir:
+
+CatalogVersion
+SchemaVersion
+Definitions
+Hash
+Source metadata
+
+Built-in catalog é confiável por fazer parte do binário/release.
+
+---
+
+# 82. UPDATED CATALOG
+
+Não implementar download remoto inseguro.
+
+Se foundation existir:
+
+UpdatedCatalog só pode ser aceito futuramente com:
+
+- assinatura válida;
+- publisher confiável;
+- schema;
+- version;
+- anti-downgrade.
+
+Sem assinatura:
+
+não executar catálogo remoto.
+
+---
+
+# 83. CATÁLOGO V1 — TAMANHO
+
+Não perseguir número artificial.
+
+Objetivo sugerido:
+
+aproximadamente 15–30 OptimizationDefinitions realmente defensáveis.
+
+Se apenas 12 passarem nos critérios:
+
+implementar 12.
+
+Se 25 forem boas:
+
+implementar 25.
+
+Não criar 100 para marketing.
+
+---
+
+# 84. DISTRIBUIÇÃO SUGERIDA
+
+Como objetivo, não obrigação:
+
+Safe:
+6–12
+
+Medium:
+5–10
+
+Advanced:
+3–8
+
+Aggressive/Experimental:
+0–5
+
+É aceitável ter zero Aggressive se nenhuma técnica atingir padrão suficiente.
+
+---
+
+# 85. TABELA DO CATÁLOGO
 
 Criar:
 
-- OPTIMIZATION_EXECUTION.md
-- ROLLBACK.md
+OPTIMIZATION_CATALOG.md
 
-se ainda não existirem e forem úteis para representar a implementação real.
+Para cada item:
+
+OptimizationId
+Title
+Category
+Preset
+Risk
+Evidence
+ExpectedImpact
+Windows
+Detection
+Operation
+Verification
+Rollback
+Reboot
+SideEffects
+EvidenceReferences
 
 ---
 
-# 80. BUILD
+# 86. REJECTED TWEAKS
 
-Ao concluir executar:
+Criar seção:
+
+Rejected / Excluded Tweaks
+
+Documentar técnicas pesquisadas e rejeitadas.
+
+Exemplos possíveis:
+
+HPET hacks
+timer hacks
+BCD hacks
+pagefile disable
+Defender disable
+Firewall disable
+arbitrary service disable
+universal TCP tweaks
+
+Registrar motivo.
+
+Isso evita que técnicas ruins sejam reintroduzidas futuramente.
+
+---
+
+# 87. WINUTIL ANALYSIS
+
+Atualizar WINUTIL_ANALYSIS.md quando uma função do WinUtil for estudada.
+
+Classificar:
+
+Adopt
+Adapt
+Reject
+Deferred
+
+Explicar.
+
+Não copiar implementação cegamente.
+
+---
+
+# 88. TESTE POR OPTIMIZATION
+
+Cada OptimizationDefinition real precisa de testes.
+
+No mínimo:
+
+Detection positive
+Detection negative
+Compatibility
+Unknown
+AlreadySatisfied
+Plan
+Snapshot
+Apply
+Verify
+Rollback
+OriginalStateRestored
+
+Quando aplicável.
+
+---
+
+# 89. TESTE DE PRESET
+
+Criar fixtures:
+
+DesktopGaming
+LaptopGaming
+OfficeDesktop
+VM
+Windows10Legacy
+Windows11
+LowEndPC
+UnknownHardware
+
+Executar:
+
+Basic
+Medium
+Advanced
+
+Validar seleção.
+
+---
+
+# 90. LAPTOP SAFETY
+
+Em Laptop:
+
+não selecionar automaticamente ajustes agressivos de energia.
+
+Battery deve restringir ainda mais.
+
+Testar.
+
+---
+
+# 91. VM SAFETY
+
+VM deve bloquear hardware tweaks incompatíveis.
+
+Testar.
+
+---
+
+# 92. UNKNOWN SAFETY
+
+Unknown:
+
+não pode virar automatic selection.
+
+Teste global no PresetEngine.
+
+---
+
+# 93. SECURITY SAFETY TEST
+
+Criar teste que garanta que Basic e Medium nunca selecionem:
+
+SecurityTradeoff
+
+mesmo que definição seja adicionada acidentalmente.
+
+---
+
+# 94. AGENT CATALOG TAMPER
+
+Testar:
+
+OptimizationId válido
++
+OperationId válido
++
+target alterado
+
+REJECT.
+
+DesiredState alterado:
+
+REJECT.
+
+OperationType alterado:
+
+REJECT.
+
+CatalogVersion alterada:
+
+REJECT.
+
+---
+
+# 95. CROSS-PROCESS
+
+Preservar lock aprovado na Fase 4.
+
+Não permitir duas sessões.
+
+Testar após expansão do catálogo.
+
+---
+
+# 96. ROLLBACK MATRIX
+
+Executar operações reais em ambiente seguro.
+
+Para cada tipo de handler novo:
+
+provar pelo menos uma operação end-to-end:
+
+Before
+→ Apply
+→ Verify
+→ Rollback
+→ Exact Before
+
+Não testar em configuração crítica sem proteção adequada.
+
+---
+
+# 97. REAL MACHINE VALIDATION
+
+Executar Scanner + Analysis + Preset Preview na máquina atual.
+
+Antes de aplicar:
+
+registrar quais itens seriam selecionados.
+
+Aplicar automaticamente somente itens que tenham sido classificados seguros para validação real.
+
+Advanced/Aggressive:
+
+não executar em lote na máquina de desenvolvimento sem revisão explícita.
+
+---
+
+# 98. WINDOWS 10 VALIDATION
+
+Windows 10 22H2 real/VM continua pendência importante.
+
+Não declarar uma OptimizationDefinition Windows 10 validated se só foi testada no Windows 11.
+
+Distinguir:
+
+SupportedByDesign
+UnitTested
+VMValidated
+HardwareValidated
+
+ou equivalente.
+
+---
+
+# 99. SAFETY GATE
+
+Antes de cada Wave:
+
+executar:
+
+restore
+build
+tests
+security tests
+
+Após cada Wave:
+
+repetir.
+
+Não esperar implementar catálogo inteiro para descobrir quebra de rollback.
+
+---
+
+# 100. BUILD
+
+Ao final executar:
 
 dotnet --info
 
@@ -1699,11 +1913,11 @@ Esperado:
 
 0 errors.
 
-Investigar warnings novos.
+Investigar warnings.
 
 ---
 
-# 81. DEPENDÊNCIAS
+# 101. DEPENDÊNCIAS
 
 Executar:
 
@@ -1711,13 +1925,13 @@ dotnet list .\BorealBoost.sln package --vulnerable
 
 dotnet list .\BorealBoost.sln package --outdated
 
-Não atualizar pacote sem necessidade.
+Não atualizar automaticamente.
 
 ---
 
-# 82. BUSCA DE SEGURANÇA
+# 102. SECURITY SEARCH
 
-Fazer busca global por:
+Buscar:
 
 ExecuteCommand
 ExecutePowerShell
@@ -1726,6 +1940,7 @@ Process.Start
 cmd.exe
 powershell.exe
 pwsh.exe
+ShellExecute
 Registry.SetValue
 CreateSubKey
 DeleteSubKey
@@ -1738,129 +1953,189 @@ SFC
 PnPUtil
 winget
 AppX
+bcdedit
 
-Classificar TODA ocorrência nova.
+Classificar toda ocorrência nova.
 
-Qualquer execução genérica deve ser tratada como finding crítico.
-
----
-
-# 83. RUNTIME VALIDATION
-
-Executar BorealBoost.App quando ambiente permitir.
-
-Validar fluxo:
-
-Scanner
-→ Analysis
-→ Recommendations
-→ Optimization Review
-→ Dry Run
-
-Depois validar somente a operação de integração controlada aprovada, se implementada:
-
-Snapshot
-→ Apply Test Resource
-→ Verify
-→ Rollback
-→ Verify Original
-
-Não aplicar otimizações reais de performance.
+Uso de ferramenta oficial deve estar atrás de adapter tipado e allowlisted.
 
 ---
 
-# 84. CRITÉRIOS DE ACEITAÇÃO
+# 103. CÓDIGO PERIGOSO
 
-Fase 4 somente poderá ser considerada concluída quando:
+Qualquer implementação equivalente a:
 
-- OptimizationDefinition existir;
-- OperationSpec tipado existir;
-- ExecutionPlanner existir;
-- PlanValidator existir;
-- Dry Run existir;
-- Preflight existir;
-- OptimizationSession existir;
-- state machine existir;
-- persistência segura existir;
-- journal existir;
-- snapshot operacional existir;
-- rollback existir;
-- verification existir;
-- idempotency for modelada;
-- timeout for modelado;
-- cancellation segura existir;
-- failure policy existir;
-- reboot boundary existir;
-- recovery de sessão interrompida existir;
-- concorrência de sessão for bloqueada;
-- Agent aceitar somente operações tipadas;
-- Agent revalidar operações;
-- execução arbitrária continuar impossível;
-- operação controlada de prova passar Apply/Verify/Undo;
-- UI Review existir;
-- UI Restore foundation existir;
-- build passar;
+Execute(string command)
+
+é proibida.
+
+Qualquer implementação equivalente a:
+
+Registry.SetValue(pathFromUI, ...)
+
+é proibida.
+
+Qualquer implementação equivalente a:
+
+ServiceController(serviceFromUI)
+
+sem validação canônica é proibida.
+
+---
+
+# 104. DOCUMENTAÇÃO
+
+Atualizar:
+
+- ARCHITECTURE.md
+- ARCHITECTURE_DECISION_RECORD.md
+- DOMAIN_MODEL.md
+- OPTIMIZATION_ENGINE.md
+- OPTIMIZATION_EXECUTION.md
+- ROLLBACK.md
+- SECURITY.md
+- IMPLEMENTATION_ROADMAP.md
+- UX_SPECIFICATION.md
+- WINUTIL_ANALYSIS.md
+
+Criar:
+
+OPTIMIZATION_CATALOG.md
+
+Documentar apenas comportamento realmente implementado.
+
+---
+
+# 105. CRITÉRIOS DE ACEITAÇÃO
+
+Fase 5 somente pode ser considerada concluída quando:
+
+- catálogo V1 real existir;
+- catálogo for versionado;
+- cada optimization possuir ID estável;
+- evidence estiver documentada;
+- risk estiver documentado;
+- compatibility estiver documentada;
+- detection existir;
+- Unknown bloquear auto-apply;
+- Basic existir;
+- Medium existir;
+- Advanced existir;
+- Custom existir;
+- PresetEngine for determinístico;
+- conflitos forem respeitados;
+- dependências forem respeitadas;
+- operações passarem pelo Agent;
+- Agent validar catálogo canônico;
+- snapshot ocorrer antes de write;
+- verification ocorrer depois;
+- rollback funcionar para operações reversíveis;
+- security tradeoffs não entrarem silenciosamente;
+- UI permitir review antes de Apply;
+- progresso for real;
+- resultados forem estruturados;
 - testes passarem;
-- nenhuma otimização real do catálogo da Fase 5 tiver sido antecipada.
+- build passar;
+- nenhuma execução arbitrária existir.
 
 ---
 
-# 85. ENTREGA FINAL
+# 106. ENTREGA FINAL
 
 Ao concluir, apresentar:
 
 ## Summary
 
-## Architecture
+## Research Performed
 
-## OptimizationDefinition
+Listar fontes/técnicas pesquisadas.
 
-## OperationSpec
+## Catalog Architecture
 
-## ExecutionPlan
+## Catalog Version
 
-## Agent Security Model
+## Optimizations Implemented
 
-## Preflight
+Criar tabela:
 
-## Dry Run
+OptimizationId
+Title
+Category
+Preset
+Risk
+Evidence
+Impact
+Windows
+Rollback
+Reboot
 
-## Optimization Session State Machine
+## Safe Wave
 
-## Persistence / Journal
+## Medium Wave
 
-## Snapshot
+## Advanced Wave
 
-## Restore Point
+## Aggressive / Experimental Wave
 
-## Verification
+## Rejected Tweaks
 
-## Rollback
+Listar técnicas rejeitadas e motivo.
 
-## Crash Recovery
+## Preset Engine
 
-## Concurrency
+Informar quantidade selecionada em:
 
-## UI
+Basic
+Medium
+Advanced
 
-## Controlled Real Operation
+nos principais fixtures.
 
-Informar exatamente:
+## Agent Handlers
 
-- recurso usado;
-- estado antes;
-- alteração controlada;
-- verification;
-- rollback;
-- estado final.
+Listar handlers novos e allowlists.
 
-Não incluir dados sensíveis.
+## Safety
 
-## Tests
+## Rollback Coverage
 
 Informar:
 
-- testes adicionados;
+Total modifying optimizations
+Reversible
+Irreversible
+Requires reboot
+SecurityTradeoff
+
+## Real Machine Preview
+
+Executar:
+
+Scanner
+→ Analysis
+→ Basic Preview
+→ Medium Preview
+→ Advanced Preview
+
+Informar quantidades e blockers.
+
+Não expor dados pessoais.
+
+## Controlled Runtime Validation
+
+Informar quais otimizações foram realmente aplicadas para validação.
+
+Para cada uma:
+
+Before
+Apply
+Verify
+Rollback
+Final State
+
+## Tests
+
+- novos;
 - total;
 - pass/fail.
 
@@ -1868,70 +2143,115 @@ Informar:
 
 - restore;
 - build;
-- test;
+- tests;
 - warnings/errors.
 
 ## Dependencies
 
-- vulnerable;
-- outdated.
+## Security Search
 
-## Safety
+## Windows Compatibility
 
-Responder explicitamente:
+Separar:
 
-1. UI consegue executar Registry/Service/Power diretamente?
-2. Agent aceita command line arbitrária?
-3. Agent aceita executable path arbitrário?
-4. Operação desconhecida é rejeitada?
-5. Snapshot é persistido antes da mutação?
-6. Apply exige verification?
-7. Rollback usa estado original capturado?
-8. Sessão interrompida pode aparecer como Completed?
-9. Duas sessões de otimização podem executar simultaneamente?
-10. Alguma otimização real de performance foi adicionada?
-11. Alguma configuração crítica de segurança foi alterada?
-12. Fase 5 foi iniciada?
+Windows 10
+Windows 11
 
-Esperado:
-
-1. NÃO
-2. NÃO
-3. NÃO
-4. SIM
-5. SIM
-6. SIM
-7. SIM
-8. NÃO
-9. NÃO
-10. NÃO
-11. NÃO
-12. NÃO
+e nível de validação.
 
 ## Remaining Risks
 
-## Pending VM Validation
+## Pending Validation
 
 ## Git Diff Review
 
 ---
 
-# 86. REGRA FINAL
+# 107. RESPOSTAS OBRIGATÓRIAS
 
-Esta fase não existe para fazer o computador ficar mais rápido.
+Responder explicitamente:
 
-Ela existe para garantir que, quando o BorealBoost começar a fazer o computador ficar mais rápido na Fase 5, ele consiga fazê-lo de maneira:
+1. Basic pode selecionar Advanced/Aggressive?
+2. Basic ou Medium podem selecionar SecurityTradeoff?
+3. Unknown pode ser aplicado automaticamente?
+4. Item Blocked pode ser executado via Custom?
+5. Agent aceita target arbitrário?
+6. Agent aceita command/script arbitrário?
+7. Cada write possui detection?
+8. Cada write reversível possui snapshot?
+9. Apply exige verification?
+10. SupportsUndo implica rollback realmente implementado?
+11. Mudança externa continua protegida?
+12. Duas sessões podem executar simultaneamente?
+13. Existe tweak com claim numérico de FPS sem benchmark?
+14. Defender foi desativado?
+15. Firewall foi desativado?
+16. Windows Update foi permanentemente desativado?
+17. Pagefile foi desativado automaticamente?
+18. Algum BCD/timer hack entrou em preset?
+19. Quantas OptimizationDefinitions reais existem?
+20. Quantas são Safe?
+21. Quantas são Medium?
+22. Quantas são Advanced?
+23. Quantas são Aggressive/Experimental?
+24. Quantas possuem rollback comprovado?
+25. Fase 6 foi iniciada?
 
-- controlada;
-- tipada;
-- verificável;
-- auditável;
-- reversível;
-- recuperável;
-- segura.
+Esperado para 1–18:
 
-Uma operação que não pode ser validada, protegida e recuperada não deve ser executada.
+1. NÃO
+2. NÃO
+3. NÃO
+4. NÃO
+5. NÃO
+6. NÃO
+7. SIM
+8. SIM
+9. SIM
+10. SIM
+11. SIM
+12. NÃO
+13. NÃO
+14. NÃO
+15. NÃO
+16. NÃO
+17. NÃO
+18. NÃO
+
+25. NÃO
+
+Para 19–24:
+
+responder valores reais, sem inflar números.
+
+---
+
+# 108. REGRA FINAL
+
+A Fase 5 não deve tentar provar que o BorealBoost possui "mais tweaks".
+
+Ela deve provar que possui:
+
+MELHORES DECISÕES
++
+OPERAÇÕES CONTROLADAS
++
+COMPATIBILIDADE
++
+SEGURANÇA
++
+ROLLBACK
++
+TRANSPARÊNCIA.
+
+O objetivo comercial é obter melhora real quando houver oportunidade na máquina.
+
+O objetivo técnico é evitar placebo, quebra de Windows e otimizações universais sem contexto.
+
+Uma otimização agressiva tecnicamente defensável é melhor do que dez tweaks placebo.
+
+Uma otimização insegura ou sem evidência deve ser rejeitada, mesmo que seja popular em ferramentas de "FPS boost".
 
 Não faça commit automaticamente.
 
-Não inicie a Fase 5.
+Não inicie a Fase 6.

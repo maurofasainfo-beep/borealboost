@@ -11,6 +11,8 @@ public interface IOptimizationCatalog
 
     string CatalogVersion { get; }
 
+    CatalogManifestMetadata Manifest { get; }
+
     IReadOnlyList<OptimizationDefinition> GetDefinitions();
 
     OptimizationDefinition? Find(OptimizationId optimizationId);
@@ -33,6 +35,14 @@ public interface IExecutionPlanner
 public interface IExecutionPlanValidator
 {
     ExecutionPlanValidationResult Validate(ExecutionPlan plan, SystemSnapshot snapshot);
+}
+
+public interface IOptimizationPresetEngine
+{
+    OptimizationPresetSelection Preview(
+        SystemSnapshot snapshot,
+        AnalysisResult analysis,
+        RecommendationPreset preset);
 }
 
 public interface IDryRunService

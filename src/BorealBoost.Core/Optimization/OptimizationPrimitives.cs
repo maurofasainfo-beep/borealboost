@@ -3,12 +3,18 @@ namespace BorealBoost.Core.Optimization;
 public enum OptimizationCategory
 {
     System,
+    Performance,
+    Gaming,
     Windows,
     Drivers,
     Graphics,
     Storage,
     Power,
     Startup,
+    Services,
+    Visual,
+    Network,
+    Privacy,
     Security,
     Memory,
     Maintenance,
@@ -29,6 +35,99 @@ public enum OptimizationEvidenceLevel
     Moderate,
     Experimental,
     Unknown
+}
+
+public enum OptimizationTechnicalCategory
+{
+    Performance,
+    Responsiveness,
+    GamingPerformance,
+    GamingFeaturePreference,
+    Privacy,
+    UXPreference,
+    Security,
+    Maintenance,
+    SystemBehavior
+}
+
+public enum OptimizationPerformanceRelevance
+{
+    None,
+    Low,
+    Moderate,
+    WorkloadDependent,
+    Unknown
+}
+
+public enum AutomaticPresetSuitability
+{
+    Automatic,
+    OptIn,
+    CustomOnly,
+    AdvancedOnly
+}
+
+public enum OptimizationUserPreferenceImpact
+{
+    None,
+    Low,
+    Medium,
+    High
+}
+
+public enum ConfigurationMechanism
+{
+    Policy,
+    Preference,
+    ImplementationDetail
+}
+
+public enum ConfigurationEvidenceKind
+{
+    DocumentedSupportedMechanism,
+    DocumentedPolicy,
+    ObservedRegistryBehavior,
+    CommunityKnown,
+    Experimental
+}
+
+public enum ActivationBoundary
+{
+    Immediate,
+    ExplorerRestart,
+    ApplicationRestart,
+    SignOut,
+    PolicyRefresh,
+    Reboot,
+    Unknown
+}
+
+public enum OptimizationVerificationLevel
+{
+    StateVerified,
+    BehaviorVerified,
+    RequiresActivationBoundary,
+    NotFullyBehaviorVerified
+}
+
+public enum RollbackValidationLevel
+{
+    HandlerValidated,
+    OptimizationUnitValidated,
+    OptimizationIntegrationValidated,
+    OptimizationVMValidated,
+    OptimizationHardwareValidated
+}
+
+public enum PlatformValidationLevel
+{
+    NotApplicable,
+    SupportedByDesign,
+    UnitTested,
+    IntegrationValidated,
+    VMValidated,
+    HardwareValidated,
+    UnvalidatedForRelease
 }
 
 public enum OperationType
@@ -97,7 +196,8 @@ public enum SnapshotRequirementKind
 
 public enum RegistryHiveKind
 {
-    CurrentUser
+    CurrentUser,
+    LocalMachine
 }
 
 public enum RegistryViewKind
@@ -233,6 +333,15 @@ public enum RecoveryActionKind
     Resume,
     Rollback,
     ManualRecovery
+}
+
+public enum OptimizationPresetSelectionStatus
+{
+    Selected,
+    Excluded,
+    Blocked,
+    NotApplicable,
+    RequiresConfirmation
 }
 
 public sealed record OptimizationIssue(

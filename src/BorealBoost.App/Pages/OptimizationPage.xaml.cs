@@ -1,4 +1,5 @@
 using BorealBoost.App.ViewModels;
+using BorealBoost.Core.Analysis;
 using Microsoft.UI.Xaml.Controls;
 using System.Diagnostics;
 
@@ -51,6 +52,26 @@ public sealed partial class OptimizationPage : Page
             _pageCancellation ??= new CancellationTokenSource();
             await _viewModel.ExecuteControlledOperationAsync(_pageCancellation.Token);
         });
+    }
+
+    private void OnBasicPresetClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        _viewModel.SelectPreset(RecommendationPreset.Basic);
+    }
+
+    private void OnMediumPresetClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        _viewModel.SelectPreset(RecommendationPreset.Medium);
+    }
+
+    private void OnAdvancedPresetClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        _viewModel.SelectPreset(RecommendationPreset.Advanced);
+    }
+
+    private void OnCustomPresetClick(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        _viewModel.SelectPreset(RecommendationPreset.Custom);
     }
 
     private static async Task RunPageActionAsync(Func<Task> action)

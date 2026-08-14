@@ -21,6 +21,14 @@ public sealed record SourceMetadata(
     string? DocumentationUri,
     string? ContentHash);
 
+public sealed record CatalogManifestMetadata(
+    string SchemaVersion,
+    string CatalogVersion,
+    string Publisher,
+    string Source,
+    string ContentHash,
+    DateTimeOffset BuiltAtUtc);
+
 public sealed record TimeoutPolicy(TimeSpan PlanTimeout, TimeSpan OperationTimeout);
 
 public sealed record OperationTimeoutPolicy(TimeSpan Timeout);
@@ -93,8 +101,26 @@ public sealed record OptimizationDefinition(
     string Title,
     string Description,
     OptimizationCategory Category,
+    OptimizationTechnicalCategory TechnicalCategory,
     OptimizationRiskLevel RiskLevel,
     OptimizationEvidenceLevel EvidenceLevel,
+    ConfigurationEvidenceKind ConfigurationEvidence,
+    ExpectedImpactLevel ExpectedImpact,
+    OptimizationPerformanceRelevance PerformanceRelevance,
+    AutomaticPresetSuitability AutomaticPresetSuitability,
+    OptimizationUserPreferenceImpact UserPreferenceImpact,
+    ConfigurationMechanism ConfigurationMechanism,
+    ActivationBoundary ActivationBoundary,
+    OptimizationVerificationLevel VerificationLevel,
+    RollbackValidationLevel RollbackValidationLevel,
+    PlatformValidationLevel Windows10ValidationLevel,
+    PlatformValidationLevel Windows11ValidationLevel,
+    IReadOnlyList<string> ImpactAreas,
+    IReadOnlyList<string> SideEffects,
+    IReadOnlyList<string> EvidenceReferences,
+    RecommendationPresetEligibility PresetEligibility,
+    bool IsSecurityTradeoff,
+    bool RequiresUserConfirmation,
     SupportedWindowsRequirement SupportedWindows,
     IReadOnlyList<CompatibilityRequirement> CompatibilityRequirements,
     IReadOnlyList<string> RequiredCapabilities,
@@ -111,6 +137,45 @@ public sealed record OptimizationDefinition(
     OperationFailurePolicy FailurePolicy,
     TimeoutPolicy TimeoutPolicy,
     SourceMetadata SourceMetadata);
+
+public sealed record OptimizationPresetSelectionItem(
+    OptimizationId OptimizationId,
+    string Title,
+    OptimizationCategory Category,
+    OptimizationTechnicalCategory TechnicalCategory,
+    OptimizationRiskLevel RiskLevel,
+    OptimizationEvidenceLevel EvidenceLevel,
+    ConfigurationEvidenceKind ConfigurationEvidence,
+    ExpectedImpactLevel ExpectedImpact,
+    OptimizationPerformanceRelevance PerformanceRelevance,
+    AutomaticPresetSuitability AutomaticPresetSuitability,
+    OptimizationUserPreferenceImpact UserPreferenceImpact,
+    ConfigurationMechanism ConfigurationMechanism,
+    ActivationBoundary ActivationBoundary,
+    OptimizationVerificationLevel VerificationLevel,
+    RollbackValidationLevel RollbackValidationLevel,
+    IReadOnlyList<string> ImpactAreas,
+    RecommendationPresetEligibility PresetEligibility,
+    OptimizationPresetSelectionStatus Status,
+    string Reason,
+    bool RequiresRestart,
+    bool SupportsUndo,
+    bool IsSecurityTradeoff);
+
+public sealed record OptimizationPresetSelection(
+    RecommendationPreset Preset,
+    string CatalogVersion,
+    IReadOnlyList<OptimizationPresetSelectionItem> Items)
+{
+    public IReadOnlyList<OptimizationPresetSelectionItem> SelectedItems =>
+        Items.Where(item => item.Status == OptimizationPresetSelectionStatus.Selected).ToArray();
+
+    public IReadOnlyList<OptimizationPresetSelectionItem> BlockedItems =>
+        Items.Where(item => item.Status == OptimizationPresetSelectionStatus.Blocked).ToArray();
+
+    public IReadOnlyList<OptimizationPresetSelectionItem> RequiresConfirmationItems =>
+        Items.Where(item => item.Status == OptimizationPresetSelectionStatus.RequiresConfirmation).ToArray();
+}
 
 public sealed record PlanDependency(OptimizationId OptimizationId, OptimizationId DependsOn);
 
@@ -202,7 +267,8 @@ public sealed record OperationSnapshotItem(
     long? PreviousQWordValue = null,
     IReadOnlyList<string>? PreviousMultiStringValue = null,
     byte[]? PreviousBinaryValue = null,
-    string? SnapshotHash = null);
+    string? SnapshotHash = null,
+    bool? RegistryKeyExistedBefore = null);
 
 public sealed record RestorePointResult(
     RestorePointStatus Status,

@@ -4,9 +4,9 @@ BorealBoost e uma aplicacao desktop Windows para diagnostico, otimizacao planeja
 
 ## Estado Atual
 
-Fase atual: **Fase 4 - Optimization Engine + Safety + Snapshot + Rollback**.
+Fase atual: **Fase 5 - Optimization Catalog**.
 
-As bases da Fase 1 foram preservadas, a Fase 2 adicionou scanner somente leitura, a Fase 3 adicionou analise/recomendacoes read-only e a Fase 4 adiciona o motor transacional seguro:
+As bases da Fase 1 foram preservadas, a Fase 2 adicionou scanner somente leitura, a Fase 3 adicionou analise/recomendacoes read-only, a Fase 4 adicionou o motor transacional seguro e a Fase 5 adiciona o primeiro catalogo real de otimizacoes:
 
 - solution .NET;
 - projetos principais;
@@ -24,10 +24,13 @@ As bases da Fase 1 foram preservadas, a Fase 2 adicionou scanner somente leitura
 - ExecutionPlan, PlanValidator, Dry Run e Preflight;
 - OptimizationSession com state machine, journal persistido e recovery foundation;
 - OperationSnapshot, verification e rollback por snapshot;
-- paginas `Otimizacao` e `Restauracao` para Review Plan, Dry Run, prova controlada e recovery;
+- catalogo built-in V1 versionado com 12 OptimizationDefinitions reais;
+- PresetEngine deterministico para Basic, Medium, Advanced e Custom;
+- RegistryValue handler allowlisted, validado pelo Agent contra catalogo canonico;
+- paginas `Otimizacao` e `Restauracao` para Review Plan, Dry Run, execucao controlada, rollback e recovery;
 - testes unitarios, integracao e system tests.
 
-Ainda nao existe catalogo real de otimizacoes de performance. A unica operacao real da Fase 4 e uma prova controlada e reversivel em `HKCU\Software\BorealBoost\IntegrationTest\Phase4ControlledValue`, com snapshot, verify e rollback. O projeto nao altera Services, Power, DNS, Drivers, Windows Update, Defender, Firewall, VBS ou Memory Integrity.
+O Catalog V1 esta documentado em `OPTIMIZATION_CATALOG.md`. Ele inclui ajustes pequenos e reversiveis de Visual, Windows, Gaming e Privacy. O projeto nao altera Services, Power, DNS, Drivers, Windows Update, Defender, Firewall, VBS, Memory Integrity, BCD ou pagefile.
 
 ## Requisitos de Desenvolvimento
 
@@ -78,12 +81,12 @@ dotnet test .\BorealBoost.sln
 Projetos da Foundation:
 
 - `BorealBoost.App`: shell WinUI 3, navigation, views, viewmodels e tema base.
-- `BorealBoost.Agent`: processo de Agent foundation, com IPC tipado e um handler allowlisted de prova controlada da Fase 4.
+- `BorealBoost.Agent`: processo de Agent foundation, com IPC tipado e handlers allowlisted de Registry para prova controlada e catalogo V1.
 - `BorealBoost.Core`: contratos, resultados, IDs fortes, protocolo App-Agent, scanner e tipos puros.
 - `BorealBoost.Infrastructure`: paths, configuracao, application info, IPC foundation e logging JSONL.
 - `BorealBoost.System`: adapters Windows read-only para Foundation e Scanner.
 - `BorealBoost.Analysis`: orquestracao do System Scanner, Analysis Engine e snapshot/analysis em memoria.
-- `BorealBoost.Optimization`: catalogo built-in minimo de prova, planner, dry run, preflight, sessao transacional e recovery.
+- `BorealBoost.Optimization`: catalogo built-in V1, preset engine, planner, dry run, preflight, sessao transacional e recovery.
 - `BorealBoost.Restore`: restore point policy modelada e rollback foundation.
 - `BorealBoost.Benchmark`, `Drivers`, `Reporting`: fronteiras de modulo sem implementacao operacional nesta fase.
 - `BorealBoost.Tests.*`: validacao de contratos, dependencias e fronteiras de seguranca.
@@ -116,9 +119,9 @@ Esta fase:
 - nao calcula Boreal Score operacional;
 - nao promete ganhos de FPS.
 
-## Optimization Engine + Rollback
+## Optimization Catalog + Rollback
 
-A pagina `Otimizacao` monta um plano a partir do snapshot/analysis atuais e executa Dry Run sem modificar Windows. A prova controlada opcional executa apenas a chave HKCU propria do BorealBoost para validar:
+A pagina `Otimizacao` monta presets Basic/Medium/Advanced/Custom a partir do snapshot/analysis atuais, apresenta Review Plan e executa Dry Run sem modificar Windows. A execucao passa pelo pipeline seguro:
 
 - snapshot antes da mutacao;
 - journal persistido antes/depois de cada etapa;
@@ -127,7 +130,16 @@ A pagina `Otimizacao` monta um plano a partir do snapshot/analysis atuais e exec
 - rollback com estado original capturado;
 - recovery de sessao incompleta.
 
-Fase 5 ainda nao foi iniciada. Nao ha tweaks Safe/Medium/Advanced/Aggressive reais.
+Catalog V1:
+
+- `schemaVersion = 5.1.0`, `catalogVersion = 5.1.0-built-in-v1`;
+- 12 OptimizationDefinitions reais;
+- 6 Safe, 5 Medium, 1 Advanced, 0 Aggressive/Experimental;
+- 12 reversiveis por snapshot;
+- 0 SecurityTradeoff;
+- 0 reboot automatico.
+- classificacao explicita separa performance/responsiveness de UX, privacidade e preferencias;
+- Basic/Medium nao aplicam preferencias pessoais silenciosamente.
 
 ## Agent
 
@@ -138,8 +150,8 @@ O `BorealBoost.Agent` nesta fase:
 - abre um named pipe local de sessao com nome vinculado ao `sessionId` e token imprevisivel;
 - valida handshake, nonce, protocolo, sessionId, requestId, sequenceNumber e tamanho maximo de mensagem;
 - expoe status, validacao de operacao, snapshot, execute, verify e rollback tipados via IPC;
-- possui apenas o handler allowlisted `BorealIntegrationRegistryValue` para a chave HKCU de integracao;
-- possui 0 handlers de tweak/performance;
+- possui handlers allowlisted `BorealIntegrationRegistryValue` e `RegistryValue`;
+- valida CatalogVersion, OptimizationId, OperationId, target e desired state contra o catalogo built-in canonico;
 - nao aceita `ExecuteCommand`, `ExecutePowerShell`, `ExecuteProcess` ou equivalente.
 
 ## Logs e Dados Mutaveis
@@ -156,4 +168,4 @@ Paths futuros para configuracao, sessoes, snapshots e relatorios ja estao centra
 
 ## Aviso de Escopo
 
-Catalogo de tweaks reais pertence a Fase 5. Drivers, benchmark, resultados e reporting pertencem a Fase 6. Installer/hardening pertencem a Fase 7.
+Drivers, benchmark, resultados e reporting pertencem a Fase 6. Installer/hardening pertence a Fase 7.

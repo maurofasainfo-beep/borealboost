@@ -1,7 +1,7 @@
 # BorealBoost - Implementation Roadmap
 
 Data: 2026-08-13
-Status: roadmap consolidado a partir da Fase 4.
+Status: roadmap consolidado a partir da Fase 5.
 
 ## Principios de Ordem
 
@@ -154,24 +154,39 @@ Limite:
 
 ## Fase 5 - Optimization Catalog - Safe + Medium + Advanced/Aggressive
 
+Status: implementada nesta entrega; validacao final registrada no relatorio desta execucao.
+
 Objetivo:
 
 - adicionar catalogo de otimizacoes em lotes pequenos, auditados e testados.
 
-Entregas planejadas:
+Entregas implementadas:
 
-- primeiro lote Safe;
-- depois Medium;
-- Advanced/Aggressive somente apos testes em VM e warnings/confirmacoes;
-- detection/apply/verify/undo por item;
-- presets operacionais;
-- UI de revisao e selecao.
+- `BuiltInOptimizationCatalog` V1 versionado (`5.1.0-built-in-v1`);
+- `OPTIMIZATION_CATALOG.md`;
+- 12 OptimizationDefinitions reais, excluindo prova de integracao;
+- 6 Safe, 5 Medium, 1 Advanced, 0 Aggressive/Experimental;
+- classificacao explicita por otimizacao tecnica, preferencia, relevancia de performance, mecanismo de configuracao, activation boundary e verification level;
+- `OperationType.RegistryValue` allowlisted para targets canonicos;
+- `OptimizationPresetEngine` para Basic, Medium, Advanced e Custom;
+- Basic/Medium sem SecurityTradeoff e sem aplicar preferencias pessoais silenciosamente;
+- Unknown/stale analysis bloqueando selecao automatica;
+- Dry Run por detection real e sem write;
+- Agent validando OperationSpec canonica contra Catalog V1;
+- rollback por snapshot para todas as definicoes reais;
+- UI de review e selecao por preset.
 
 Politica:
 
 - tweaks agressivos nao sao antecipados;
 - protecoes criticas de seguranca nao entram silenciosamente em Basic/Medium;
-- cada item precisa de evidencia, risco, compatibilidade e rollback.
+- cada item precisa de evidencia, risco, compatibilidade, activation boundary, verification level e rollback.
+
+Limite:
+
+- sem Services, Power, DNS, AppX, drivers, Windows Update, Defender, Firewall, BCD, timer hacks ou pagefile;
+- Advanced com confirmacao obrigatoria nao e selecionado silenciosamente;
+- Windows 10 real/VM e HKLM apply elevado permanecem `UNVALIDATED_FOR_RELEASE` e precisam de validacao operacional antes de Release Candidate.
 
 ## Fase 6 - Drivers + Benchmark + Results + Reporting
 

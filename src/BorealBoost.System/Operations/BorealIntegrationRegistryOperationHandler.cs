@@ -9,8 +9,24 @@ namespace BorealBoost.System.Operations;
 public sealed class BorealIntegrationRegistryOperationHandler : IOperationHandler
 {
     private readonly AgentOperationSecurityValidator _validator = new();
+    private readonly OperationType _operationType;
 
-    public OperationType OperationType => OperationType.BorealIntegrationRegistryValue;
+    public BorealIntegrationRegistryOperationHandler()
+        : this(OperationType.BorealIntegrationRegistryValue)
+    {
+    }
+
+    public BorealIntegrationRegistryOperationHandler(OperationType operationType)
+    {
+        if (operationType is not (OperationType.BorealIntegrationRegistryValue or OperationType.RegistryValue))
+        {
+            throw new ArgumentOutOfRangeException(nameof(operationType), operationType, "Only trusted registry operation types are supported.");
+        }
+
+        _operationType = operationType;
+    }
+
+    public OperationType OperationType => _operationType;
 
     public Result Validate(OperationSpec operation)
     {
@@ -29,8 +45,9 @@ public sealed class BorealIntegrationRegistryOperationHandler : IOperationHandle
         var target = operation.RegistryValue!.Target;
         try
         {
-            using var baseKey = OpenBaseKey(target.View);
+            using var baseKey = OpenBaseKey(target);
             using var key = baseKey.OpenSubKey(target.KeyPath, writable: false);
+            var keyExistedBefore = key is not null;
             if (key is null || !key.GetValueNames().Contains(target.ValueName, StringComparer.Ordinal))
             {
                 return Task.FromResult(Result<OperationSnapshotItem>.Success(OperationSnapshotHasher.Stamp(new OperationSnapshotItem(
@@ -47,7 +64,8 @@ public sealed class BorealIntegrationRegistryOperationHandler : IOperationHandle
                     DateTimeOffset.UtcNow,
                     operation.RollbackStrategy,
                     [],
-                    "value_absent_before_apply"))));
+                    "value_absent_before_apply",
+                    RegistryKeyExistedBefore: keyExistedBefore))));
             }
 
             var kind = key.GetValueKind(target.ValueName);
@@ -77,7 +95,8 @@ public sealed class BorealIntegrationRegistryOperationHandler : IOperationHandle
                 "value_captured_before_apply",
                 converted.QWordValue,
                 converted.MultiStringValue,
-                converted.BinaryValue))));
+                converted.BinaryValue,
+                RegistryKeyExistedBefore: keyExistedBefore))));
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or SecurityException)
         {
@@ -239,15 +258,21 @@ public sealed class BorealIntegrationRegistryOperationHandler : IOperationHandle
         }
     }
 
-    private static RegistryKey OpenBaseKey(RegistryViewKind view)
+    private static RegistryKey OpenBaseKey(RegistryOperationTarget target)
     {
-        var registryView = view switch
+        var registryView = target.View switch
         {
             RegistryViewKind.Registry32 => RegistryView.Registry32,
             RegistryViewKind.Registry64 => RegistryView.Registry64,
             _ => RegistryView.Default
         };
-        return RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, registryView);
+        var hive = target.Hive switch
+        {
+            RegistryHiveKind.CurrentUser => RegistryHive.CurrentUser,
+            RegistryHiveKind.LocalMachine => RegistryHive.LocalMachine,
+            _ => throw new IOException("Registry hive is not supported by the trusted registry handler.")
+        };
+        return RegistryKey.OpenBaseKey(hive, registryView);
     }
 
     private static bool VerifyDesiredState(OperationSpec operation)
@@ -258,7 +283,7 @@ public sealed class BorealIntegrationRegistryOperationHandler : IOperationHandle
 
     private static RegistryValueState ReadCurrentState(RegistryOperationTarget target)
     {
-        using var baseKey = OpenBaseKey(target.View);
+        using var baseKey = OpenBaseKey(target);
         using var key = baseKey.OpenSubKey(target.KeyPath, writable: false);
         if (key is null || !key.GetValueNames().Contains(target.ValueName, StringComparer.Ordinal))
         {
@@ -282,7 +307,7 @@ public sealed class BorealIntegrationRegistryOperationHandler : IOperationHandle
     private static void WriteDesiredState(OperationSpec operation)
     {
         var registry = operation.RegistryValue!;
-        using var baseKey = OpenBaseKey(registry.Target.View);
+        using var baseKey = OpenBaseKey(registry.Target);
         if (!registry.DesiredState.Exists)
         {
             using var existing = baseKey.OpenSubKey(registry.Target.KeyPath, writable: true);
@@ -328,11 +353,21 @@ public sealed class BorealIntegrationRegistryOperationHandler : IOperationHandle
             throw new InvalidOperationException("Registry rollback snapshot target is missing.");
         }
 
-        using var baseKey = OpenBaseKey(snapshot.RegistryTarget.View);
+        using var baseKey = OpenBaseKey(snapshot.RegistryTarget);
         if (!snapshot.ExistedBefore)
         {
-            using var existing = baseKey.OpenSubKey(snapshot.RegistryTarget.KeyPath, writable: true);
-            existing?.DeleteValue(snapshot.RegistryTarget.ValueName, throwOnMissingValue: false);
+            var removeCreatedKey = false;
+            using (var existing = baseKey.OpenSubKey(snapshot.RegistryTarget.KeyPath, writable: true))
+            {
+                existing?.DeleteValue(snapshot.RegistryTarget.ValueName, throwOnMissingValue: false);
+                removeCreatedKey = snapshot.RegistryKeyExistedBefore == false && RegistryKeyIsEmpty(existing);
+            }
+
+            if (removeCreatedKey)
+            {
+                baseKey.DeleteSubKey(snapshot.RegistryTarget.KeyPath, throwOnMissingSubKey: false);
+            }
+
             return;
         }
 
@@ -396,6 +431,13 @@ public sealed class BorealIntegrationRegistryOperationHandler : IOperationHandle
         }
 
         return Result.Success();
+    }
+
+    private static bool RegistryKeyIsEmpty(RegistryKey? key)
+    {
+        return key is not null &&
+               key.GetValueNames().Length == 0 &&
+               key.GetSubKeyNames().Length == 0;
     }
 
     private static RegistryValueState StateFromSnapshot(OperationSnapshotItem snapshot)

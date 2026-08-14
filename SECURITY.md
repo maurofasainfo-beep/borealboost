@@ -1,7 +1,7 @@
 # BorealBoost - Security
 
-Data: 2026-08-12
-Status: politica de seguranca aprovada e atualizada ate a Fase 4.
+Data: 2026-08-13
+Status: politica de seguranca aprovada e atualizada ate a Fase 5.
 
 ## Principios
 
@@ -34,7 +34,7 @@ Estas areas exigem modelo de permissao, validacao e rollback.
 Modelo obrigatorio:
 
 - UI principal sem privilegio permanente;
-- `BorealBoost.Agent` elevado sob demanda por sessao;
+- `BorealBoost.Agent` obrigatorio; elevado sob demanda quando a operacao exigir privilegio;
 - named pipe local com ACL restrita;
 - Agent aceita apenas ExecutionPlan revalidado por ele mesmo;
 - sem UAC a cada comando;
@@ -230,11 +230,26 @@ Snapshots devem ficar em ProgramData com ACL restrita a Administrators e usuario
 
 Devem evitar capturar valores sensiveis. Se um valor alvo parecer segredo, a operacao deve mascarar ou bloquear captura.
 
-## Optimization Execution - Fase 4
+## Optimization Execution - Fases 4 e 5
 
-A Fase 4 introduz infraestrutura de mutacao somente para prova controlada. A unica operacao real permitida e `BorealIntegrationRegistryValue`, restrita a:
+A Fase 4 introduziu infraestrutura de mutacao somente para prova controlada. A Fase 5 adicionou `OperationType.RegistryValue` para o catalogo built-in V1, mantendo allowlist canonica e sem target livre.
+
+Operacao de integracao:
 
 `HKCU\Software\BorealBoost\IntegrationTest\Phase4ControlledValue`
+
+Catalog V1:
+
+- 12 OptimizationDefinitions reais;
+- `schemaVersion = 5.1.0`;
+- `catalogVersion = 5.1.0-built-in-v1`;
+- somente `RegistryValue`;
+- targets fixos em `TrustedRegistryOperationTargets.CatalogV1`;
+- classificacao explicita de otimizacao tecnica versus preferencia (`TechnicalCategory`, `PerformanceRelevance`, `AutomaticPresetSuitability`);
+- fronteira de ativacao e nivel de verificacao declarados por definicao;
+- 0 SecurityTradeoff;
+- 0 Defender/Firewall/Windows Update/pagefile/BCD/timer;
+- detalhes em `OPTIMIZATION_CATALOG.md`.
 
 Controles implementados:
 
@@ -250,13 +265,21 @@ Controles implementados:
 - sessao interrompida sem `CompletedAtUtc` entra no recovery foundation;
 - recovery expoe artefatos corrompidos/incompativeis como `ManualRecovery`, sem apagamento silencioso;
 - lock cross-process impede duas sessoes mutaveis simultaneas por usuario.
+- Basic seleciona somente itens `Automatic` Safe compativeis; preferencias de UX, privacidade e atalhos nao entram automaticamente;
+- Medium seleciona itens `Automatic` Safe/Medium e mostra itens `OptIn` como `RequiresConfirmation`;
+- Basic/Medium nao selecionam SecurityTradeoff nem Experimental;
+- Advanced/Custom nao executam itens `Blocked`;
+- AnalysisResult stale bloqueia preset;
+- Unknown Windows/build/evidence bloqueia selecao automatica.
 
-O handler Registry controlado preserva exatamente `String`, `ExpandString`, `DWord`, `QWord`, `MultiString` e `Binary`. Tipos nao suportados sao rejeitados antes de apply/rollback; `REG_EXPAND_SZ` nao e expandido para captura.
+O handler Registry controlado preserva exatamente existencia da chave, existencia do valor, `String`, `ExpandString`, `DWord`, `QWord`, `MultiString`, `Binary` e `RegistryView` para snapshot/rollback. Tipos nao suportados sao rejeitados antes de apply/rollback; `REG_EXPAND_SZ` nao e expandido para captura.
 
-Nao foi implementado nesta fase:
+Nao foi implementado ate a Fase 5:
 
-- catalogo de tweaks reais;
 - alteracao de Services, Power, DNS, drivers ou Windows Update;
+- reducao automatica de Defender, Firewall, UAC, Secure Boot, VBS ou Memory Integrity;
+- pagefile disable;
+- BCD/timer hacks;
 - restore point real;
 - executor generico de processo, cmd ou PowerShell.
 

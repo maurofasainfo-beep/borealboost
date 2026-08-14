@@ -1,7 +1,7 @@
 # BorealBoost - System Scanner
 
 Data: 2026-08-12
-Status: Fase 2 implementada e corrigida como scanner somente leitura; consumido pela Fase 3 Analysis.
+Status: Fase 2 implementada e corrigida como scanner somente leitura; consumido pela Fase 3 Analysis e pela Fase 5 PresetEngine.
 
 ## Objetivo
 
@@ -163,6 +163,8 @@ Dois scans simultaneos sao rejeitados com `scanner.already_running`, inclusive q
 O `SystemSnapshot` e a unica entrada esperada para regras de analise da Fase 3. Regras de analysis nao devem criar novos scanners escondidos nem consultar WMI/Registry/Process/Network diretamente.
 
 Unknown, Deferred, NotSupported e provider failures devem ser preservados como incerteza ou bloqueio, nunca como oportunidade automatica.
+
+Na Fase 5, o PresetEngine tambem usa `SystemSnapshot` para bloquear ou marcar como `NotApplicable` itens do Catalog V1 por Windows/build/arquitetura/VM. O Scanner continua somente leitura e nao executa detection de apply; detection operacional acontece no Dry Run pelo handler tipado antes de qualquer write.
 
 ## UI
 

@@ -5,14 +5,29 @@
 
     <Grid Background="{StaticResource BorealBackgroundBrush}" Padding="32">
         <ScrollViewer>
-            <StackPanel Spacing="24" MaxWidth="1120">
+            <StackPanel Spacing="24" MaxWidth="1180">
                 <StackPanel Spacing="8">
                     <TextBlock Text="Otimizacao" Style="{StaticResource BorealDisplayTextBlockStyle}" />
-                    <TextBlock Text="Review Plan e Dry Run do motor transacional. A Fase 4 nao aplica catalogo de performance." Style="{StaticResource BorealBodyTextBlockStyle}" />
+                    <TextBlock Text="Catalogo versionado, presets e Dry Run do pipeline transacional." Style="{StaticResource BorealBodyTextBlockStyle}" />
                 </StackPanel>
 
                 <Border Style="{StaticResource BorealCardBorderStyle}">
                     <StackPanel Margin="24" Spacing="14">
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Content="Basico" Click="OnBasicPresetClick" />
+                            <Button Grid.Column="1" Content="Medio" Click="OnMediumPresetClick" />
+                            <Button Grid.Column="2" Content="Avancado" Click="OnAdvancedPresetClick" />
+                            <Button Grid.Column="3" Content="Custom" Click="OnCustomPresetClick" />
+                            <TextBlock Grid.Column="4" Text="{Binding SelectedPresetText}" Style="{StaticResource BorealBodyTextBlockStyle}" VerticalAlignment="Center" />
+                        </Grid>
+
                         <Grid ColumnSpacing="12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
@@ -20,15 +35,59 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Button Grid.Column="0" Content="Dry Run" Click="OnDryRunClick" IsEnabled="{Binding CanDryRun}" />
-                            <Button Grid.Column="1" Content="Confirmar prova controlada" Click="OnExecuteControlledClick" IsEnabled="{Binding CanExecuteControlledOperation}" />
-                            <TextBlock Grid.Column="2" Text="{Binding StatusText}" Style="{StaticResource BorealBodyTextBlockStyle}" VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Content="Executar plano revisado" Click="OnExecuteControlledClick" IsEnabled="{Binding CanExecuteControlledOperation}" />
+                            <TextBlock Grid.Column="2" Text="{Binding StatusText}" Style="{StaticResource BorealBodyTextBlockStyle}" VerticalAlignment="Center" TextWrapping="Wrap" />
                         </Grid>
 
                         <TextBlock Text="{Binding PlanSummary}" Foreground="{StaticResource BorealTextPrimaryBrush}" FontSize="16" TextWrapping="Wrap" />
-                        <TextBlock Text="{Binding SafetySummary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
-                        <TextBlock Text="{Binding ExecutionSummary}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                        <TextBlock Text="{Binding SafetySummary}" Style="{StaticResource BorealBodyTextBlockStyle}" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding ExecutionSummary}" Style="{StaticResource BorealBodyTextBlockStyle}" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
+
+                <TextBlock Text="Catalogo e preset" Style="{StaticResource BorealHeadingTextBlockStyle}" />
+                <ListView ItemsSource="{Binding PresetItems}" MaxHeight="340">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Padding="0,8" ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="1.8*" />
+                                    <ColumnDefinition Width="0.9*" />
+                                    <ColumnDefinition Width="0.9*" />
+                                    <ColumnDefinition Width="1*" />
+                                    <ColumnDefinition Width="1.1*" />
+                                    <ColumnDefinition Width="1.8*" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}" IsEnabled="{Binding CanSelect}" VerticalAlignment="Top" />
+                                <StackPanel Grid.Column="1" Spacing="2">
+                                    <TextBlock Text="{Binding Title}" Foreground="{StaticResource BorealTextPrimaryBrush}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding OptimizationId}" Style="{StaticResource BorealBodyTextBlockStyle}" FontSize="12" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Spacing="2">
+                                    <TextBlock Text="{Binding Category}" Style="{StaticResource BorealBodyTextBlockStyle}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding TechnicalCategory}" Style="{StaticResource BorealBodyTextBlockStyle}" FontSize="12" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="3" Spacing="2">
+                                    <TextBlock Text="{Binding Risk}" Style="{StaticResource BorealBodyTextBlockStyle}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding AutomaticPresetSuitability}" Style="{StaticResource BorealBodyTextBlockStyle}" FontSize="12" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="4" Text="{Binding Status}" Style="{StaticResource BorealBodyTextBlockStyle}" TextWrapping="Wrap" />
+                                <StackPanel Grid.Column="5" Spacing="2">
+                                    <TextBlock Text="{Binding Impact}" Style="{StaticResource BorealBodyTextBlockStyle}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding PerformanceRelevance}" Style="{StaticResource BorealBodyTextBlockStyle}" FontSize="12" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding VerificationLevel}" Style="{StaticResource BorealBodyTextBlockStyle}" FontSize="12" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding Rollback}" Style="{StaticResource BorealBodyTextBlockStyle}" FontSize="12" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="6" Spacing="2">
+                                    <TextBlock Text="{Binding Reason}" Style="{StaticResource BorealBodyTextBlockStyle}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding ConfigurationMechanism}" Style="{StaticResource BorealBodyTextBlockStyle}" FontSize="12" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding ActivationBoundary}" Style="{StaticResource BorealBodyTextBlockStyle}" FontSize="12" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
 
                 <TextBlock Text="Operacoes planejadas" Style="{StaticResource BorealHeadingTextBlockStyle}" />
                 <ListView ItemsSource="{Binding Operations}" MaxHeight="260">
@@ -45,7 +104,7 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0" Text="{Binding OperationId}" Foreground="{StaticResource BorealTextPrimaryBrush}" TextWrapping="Wrap" />
                                 <TextBlock Grid.Column="1" Text="{Binding OperationType}" Style="{StaticResource BorealBodyTextBlockStyle}" />
-                                <TextBlock Grid.Column="2" Text="{Binding Target}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                                <TextBlock Grid.Column="2" Text="{Binding Target}" Style="{StaticResource BorealBodyTextBlockStyle}" TextWrapping="Wrap" />
                                 <TextBlock Grid.Column="3" Text="{Binding ChangeStatus}" Style="{StaticResource BorealBodyTextBlockStyle}" />
                                 <TextBlock Grid.Column="4" Text="{Binding SnapshotStatus}" Style="{StaticResource BorealBodyTextBlockStyle}" />
                                 <TextBlock Grid.Column="5" Text="{Binding Reversibility}" Style="{StaticResource BorealBodyTextBlockStyle}" />
@@ -65,8 +124,8 @@
                                     <ColumnDefinition Width="3*" />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0" Text="{Binding Code}" Foreground="{StaticResource BorealTextPrimaryBrush}" TextWrapping="Wrap" />
-                                <TextBlock Grid.Column="1" Text="{Binding Scope}" Style="{StaticResource BorealBodyTextBlockStyle}" />
-                                <TextBlock Grid.Column="2" Text="{Binding Message}" Style="{StaticResource BorealBodyTextBlockStyle}" />
+                                <TextBlock Grid.Column="1" Text="{Binding Scope}" Style="{StaticResource BorealBodyTextBlockStyle}" TextWrapping="Wrap" />
+                                <TextBlock Grid.Column="2" Text="{Binding Message}" Style="{StaticResource BorealBodyTextBlockStyle}" TextWrapping="Wrap" />
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>

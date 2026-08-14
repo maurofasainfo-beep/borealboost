@@ -20,7 +20,7 @@ public sealed class OptimizationEngineTests
     [Fact]
     public void Built_in_definition_declares_transactional_operation_contract()
     {
-        var definition = new BuiltInOptimizationCatalog().GetDefinitions().Single();
+        var definition = IntegrationProofDefinition();
         var operation = definition.OperationSpecs.Single();
 
         Assert.Equal(BuiltInOptimizationCatalog.IntegrationProofOptimizationId, definition.OptimizationId);
@@ -87,7 +87,7 @@ public sealed class OptimizationEngineTests
     [Fact]
     public void Operation_definition_validator_rejects_missing_snapshot_for_full_reversibility()
     {
-        var definition = new BuiltInOptimizationCatalog().GetDefinitions().Single();
+        var definition = IntegrationProofDefinition();
         var invalid = definition with
         {
             OperationSpecs =
@@ -177,7 +177,7 @@ public sealed class OptimizationEngineTests
             BuiltInOperation() with { OperationId = new OperationId("BB.OP.TEST.A") },
             BuiltInOperation() with { OperationId = new OperationId("BB.OP.TEST.B") }
         };
-        var definition = new BuiltInOptimizationCatalog().GetDefinitions().Single() with { OperationSpecs = operations };
+        var definition = IntegrationProofDefinition() with { OperationSpecs = operations };
         var context = CreateContext(new StaticCatalog(definition), new OrderedFailureOperationHandler("none"));
         var plan = context.Planner.CreatePlan(context.Snapshot, context.Analysis, context.Analysis.RecommendationPlan, [BuiltInOptimizationCatalog.IntegrationProofOptimizationId]).Value!;
 
@@ -367,7 +367,7 @@ public sealed class OptimizationEngineTests
             BuiltInOperation() with { OperationId = new OperationId("BB.OP.TEST.B") },
             BuiltInOperation() with { OperationId = new OperationId("BB.OP.TEST.C") }
         };
-        var definition = new BuiltInOptimizationCatalog().GetDefinitions().Single() with { OperationSpecs = operations };
+        var definition = IntegrationProofDefinition() with { OperationSpecs = operations };
         var handler = new OrderedFailureOperationHandler("BB.OP.TEST.C");
         var context = CreateContext(new StaticCatalog(definition), handler);
         var plan = CreateManualPlan(context, operations);
@@ -388,7 +388,7 @@ public sealed class OptimizationEngineTests
             BuiltInOperation() with { OperationId = new OperationId("BB.OP.TEST.B") },
             BuiltInOperation() with { OperationId = new OperationId("BB.OP.TEST.C") }
         };
-        var definition = new BuiltInOptimizationCatalog().GetDefinitions().Single() with { OperationSpecs = operations };
+        var definition = IntegrationProofDefinition() with { OperationSpecs = operations };
         var handler = new PartialRollbackFailureOperationHandler("BB.OP.TEST.C", "BB.OP.TEST.A");
         var context = CreateContext(new StaticCatalog(definition), handler);
         var plan = CreateManualPlan(context, operations);
@@ -408,7 +408,7 @@ public sealed class OptimizationEngineTests
             TimeoutPolicy = new OperationTimeoutPolicy(TimeSpan.FromMilliseconds(20)),
             RetryPolicy = new OperationRetryPolicy(false, 1, TimeSpan.Zero, [])
         };
-        var definition = new BuiltInOptimizationCatalog().GetDefinitions().Single() with { OperationSpecs = [operation] };
+        var definition = IntegrationProofDefinition() with { OperationSpecs = [operation] };
         var handler = new TimeoutAfterApplyStartedHandler();
         var context = CreateContext(new StaticCatalog(definition), handler);
         var plan = CreateManualPlan(context, [operation]);
@@ -582,11 +582,400 @@ public sealed class OptimizationEngineTests
         Assert.Equal("optimization.rollback.snapshot_integrity_failed", result.ErrorCode);
     }
 
+    [Fact]
+    public void Built_in_catalog_v1_definitions_declare_safe_execution_contract()
+    {
+        var catalog = new BuiltInOptimizationCatalog();
+        var realDefinitions = catalog.GetDefinitions()
+            .Where(definition => definition.Category != OptimizationCategory.IntegrationTest)
+            .ToArray();
+        var validator = new OptimizationDefinitionValidator();
+
+        Assert.Equal("5.1.0", catalog.SchemaVersion);
+        Assert.Equal("5.1.0-built-in-v1", catalog.CatalogVersion);
+        Assert.Equal(12, realDefinitions.Length);
+        Assert.Equal(64, catalog.Manifest.ContentHash.Length);
+
+        foreach (var definition in realDefinitions)
+        {
+            var issues = validator.Validate(definition);
+            Assert.Empty(issues);
+            Assert.NotEmpty(definition.EvidenceReferences);
+            Assert.True(definition.SupportsUndo);
+            Assert.False(definition.IsSecurityTradeoff);
+            Assert.True(Enum.IsDefined(definition.TechnicalCategory));
+            Assert.True(Enum.IsDefined(definition.ConfigurationEvidence));
+            Assert.True(Enum.IsDefined(definition.AutomaticPresetSuitability));
+            Assert.NotEqual(ActivationBoundary.Unknown, definition.ActivationBoundary);
+            Assert.NotEqual(OptimizationVerificationLevel.BehaviorVerified, definition.VerificationLevel);
+
+            foreach (var operation in definition.OperationSpecs)
+            {
+                Assert.Equal(OperationType.RegistryValue, operation.OperationType);
+                Assert.True(TrustedRegistryOperationTargets.IsTrustedCatalogOperation(operation));
+                Assert.Equal(OperationIdempotency.Idempotent, operation.Idempotency);
+                Assert.Equal(OperationReversibility.Full, operation.Reversibility);
+                Assert.Equal(OperationVerificationKind.ExactState, operation.VerificationStrategy.Kind);
+                Assert.Equal(OperationRollbackKind.SnapshotRestore, operation.RollbackStrategy.Kind);
+                Assert.Contains(operation.SnapshotRequirements, requirement => requirement.Requirement == SnapshotRequirementKind.Required && requirement.BlockIfUnavailable);
+            }
+        }
+    }
+
+    [Fact]
+    public void Catalog_v1_definitions_declare_product_classification_without_inflating_performance()
+    {
+        var realDefinitions = new BuiltInOptimizationCatalog().GetDefinitions()
+            .Where(definition => definition.Category != OptimizationCategory.IntegrationTest)
+            .ToArray();
+
+        Assert.Equal(1, realDefinitions.Count(definition => definition.TechnicalCategory == OptimizationTechnicalCategory.Responsiveness));
+        Assert.Equal(1, realDefinitions.Count(definition => definition.TechnicalCategory == OptimizationTechnicalCategory.GamingPerformance));
+        Assert.Equal(3, realDefinitions.Count(definition => definition.TechnicalCategory == OptimizationTechnicalCategory.GamingFeaturePreference));
+        Assert.Equal(4, realDefinitions.Count(definition => definition.TechnicalCategory == OptimizationTechnicalCategory.Privacy));
+        Assert.Equal(2, realDefinitions.Count(definition => definition.TechnicalCategory == OptimizationTechnicalCategory.UXPreference));
+        Assert.Equal(9, realDefinitions.Count(definition => definition.PerformanceRelevance == OptimizationPerformanceRelevance.None));
+
+        Assert.DoesNotContain(
+            realDefinitions.Where(definition => definition.TechnicalCategory is OptimizationTechnicalCategory.Privacy or OptimizationTechnicalCategory.UXPreference or OptimizationTechnicalCategory.GamingFeaturePreference),
+            definition => definition.PerformanceRelevance != OptimizationPerformanceRelevance.None);
+    }
+
+    [Fact]
+    public void Catalog_v1_policy_preference_and_validation_metadata_is_explicit()
+    {
+        var realDefinitions = new BuiltInOptimizationCatalog().GetDefinitions()
+            .Where(definition => definition.Category != OptimizationCategory.IntegrationTest)
+            .ToArray();
+
+        var policyDefinitions = realDefinitions
+            .Where(definition => definition.ConfigurationMechanism == ConfigurationMechanism.Policy)
+            .ToArray();
+
+        Assert.Equal(2, policyDefinitions.Length);
+        Assert.Contains(policyDefinitions, definition => definition.OptimizationId == new OptimizationId("BB.OPT.PRIVACY.ADVERTISING_ID.DISABLE"));
+        Assert.Contains(policyDefinitions, definition => definition.OptimizationId == new OptimizationId("BB.OPT.GAMING.GAME_DVR_POLICY.DISABLE"));
+        Assert.All(
+            realDefinitions.Where(definition => definition.TechnicalCategory is OptimizationTechnicalCategory.Privacy or OptimizationTechnicalCategory.UXPreference or OptimizationTechnicalCategory.GamingFeaturePreference),
+            definition => Assert.NotEqual(AutomaticPresetSuitability.Automatic, definition.AutomaticPresetSuitability));
+        Assert.All(
+            policyDefinitions,
+            definition => Assert.Equal(ActivationBoundary.PolicyRefresh, definition.ActivationBoundary));
+        Assert.Equal(
+            PlatformValidationLevel.UnvalidatedForRelease,
+            realDefinitions.Single(definition => definition.OptimizationId == new OptimizationId("BB.OPT.PRIVACY.ADVERTISING_ID.DISABLE")).Windows11ValidationLevel);
+        Assert.Equal(
+            PlatformValidationLevel.UnvalidatedForRelease,
+            realDefinitions.Single(definition => definition.OptimizationId == new OptimizationId("BB.OPT.GAMING.GAME_DVR_POLICY.DISABLE")).Windows10ValidationLevel);
+    }
+
+    [Fact]
+    public void Preset_engine_enforces_basic_medium_advanced_policy()
+    {
+        var catalog = new BuiltInOptimizationCatalog();
+        var snapshot = BuildSnapshot();
+        var analysis = BuildAnalysis(snapshot.Metadata.ScanId);
+        var engine = new OptimizationPresetEngine(catalog);
+
+        var basic = engine.Preview(snapshot, analysis, RecommendationPreset.Basic);
+        var medium = engine.Preview(snapshot, analysis, RecommendationPreset.Medium);
+        var windows10 = BuildWindows10Snapshot();
+        var advanced = engine.Preview(windows10, BuildAnalysis(windows10.Metadata.ScanId), RecommendationPreset.Advanced);
+
+        Assert.Equal(2, basic.SelectedItems.Count);
+        Assert.All(basic.SelectedItems, item =>
+        {
+            Assert.Equal(OptimizationRiskLevel.Safe, item.RiskLevel);
+            Assert.Equal(AutomaticPresetSuitability.Automatic, item.AutomaticPresetSuitability);
+            Assert.False(item.IsSecurityTradeoff);
+        });
+        Assert.DoesNotContain(basic.SelectedItems, item => item.RiskLevel >= OptimizationRiskLevel.Advanced);
+        Assert.DoesNotContain(basic.SelectedItems, item => item.TechnicalCategory is OptimizationTechnicalCategory.Privacy or OptimizationTechnicalCategory.UXPreference or OptimizationTechnicalCategory.GamingFeaturePreference);
+
+        Assert.Equal(2, medium.SelectedItems.Count);
+        Assert.All(medium.SelectedItems, item =>
+        {
+            Assert.True(item.RiskLevel <= OptimizationRiskLevel.Medium);
+            Assert.Equal(AutomaticPresetSuitability.Automatic, item.AutomaticPresetSuitability);
+            Assert.False(item.IsSecurityTradeoff);
+        });
+        Assert.Contains(medium.RequiresConfirmationItems, item => item.AutomaticPresetSuitability == AutomaticPresetSuitability.OptIn);
+
+        Assert.Contains(
+            advanced.RequiresConfirmationItems,
+            item => item.OptimizationId == new OptimizationId("BB.OPT.GAMING.GAME_DVR_POLICY.DISABLE"));
+    }
+
+    [Fact]
+    public void Custom_allows_compatible_preferences_without_bypassing_blocked_items()
+    {
+        var catalog = new BuiltInOptimizationCatalog();
+        var snapshot = BuildSnapshot();
+        var analysis = BuildAnalysis(snapshot.Metadata.ScanId);
+        var selection = new OptimizationPresetEngine(catalog)
+            .Preview(snapshot, analysis, RecommendationPreset.Custom);
+
+        Assert.Contains(selection.SelectedItems, item => item.TechnicalCategory == OptimizationTechnicalCategory.UXPreference);
+        Assert.Contains(selection.SelectedItems, item => item.TechnicalCategory == OptimizationTechnicalCategory.Privacy);
+        Assert.Contains(selection.SelectedItems, item => item.TechnicalCategory == OptimizationTechnicalCategory.GamingFeaturePreference);
+        Assert.DoesNotContain(selection.SelectedItems, item => item.Status == OptimizationPresetSelectionStatus.Blocked);
+    }
+
+    [Fact]
+    public void Preset_engine_blocks_unknown_windows_facts()
+    {
+        var snapshot = BuildSnapshot() with
+        {
+            OperatingSystem = BuildSnapshot().OperatingSystem with
+            {
+                Build = null,
+                BorealBoostCompatibility = WindowsCompatibilityStatus.Unknown,
+                CompatibilityReason = "unknown"
+            }
+        };
+        var selection = new OptimizationPresetEngine(new BuiltInOptimizationCatalog())
+            .Preview(snapshot, BuildAnalysis(snapshot.Metadata.ScanId), RecommendationPreset.Basic);
+
+        Assert.Empty(selection.SelectedItems);
+        Assert.NotEmpty(selection.BlockedItems);
+    }
+
+    [Fact]
+    public void Preset_engine_blocks_stale_analysis_result()
+    {
+        var snapshot = BuildSnapshot();
+        var staleAnalysis = BuildAnalysis(ScanId.New());
+        var selection = new OptimizationPresetEngine(new BuiltInOptimizationCatalog())
+            .Preview(snapshot, staleAnalysis, RecommendationPreset.Basic);
+
+        Assert.Empty(selection.SelectedItems);
+        Assert.All(selection.Items, item => Assert.Equal(OptimizationPresetSelectionStatus.Blocked, item.Status));
+    }
+
+    [Fact]
+    public void Preset_engine_is_deterministic_across_representative_fixtures()
+    {
+        var catalog = new BuiltInOptimizationCatalog();
+        var engine = new OptimizationPresetEngine(catalog);
+        var snapshots = new[]
+        {
+            BuildSnapshot(),
+            BuildWindows10Snapshot(),
+            BuildLaptopSnapshot(),
+            BuildVirtualMachineSnapshot(),
+            BuildUnknownWindowsSnapshot()
+        };
+
+        foreach (var snapshot in snapshots)
+        {
+            var analysis = BuildAnalysis(snapshot.Metadata.ScanId);
+            foreach (var preset in Enum.GetValues<RecommendationPreset>())
+            {
+                var first = engine.Preview(snapshot, analysis, preset);
+                var second = engine.Preview(snapshot, analysis, preset);
+
+                Assert.Equal(PresetSelectionSignature(first), PresetSelectionSignature(second));
+            }
+        }
+    }
+
+    [Fact]
+    public void Preset_engine_reports_expected_counts_for_phase5_fixtures()
+    {
+        var catalog = new BuiltInOptimizationCatalog();
+        var engine = new OptimizationPresetEngine(catalog);
+        var fixtures = new (string Name, SystemSnapshot Snapshot, int Basic, int Medium, int Advanced, int AdvancedRequiresConfirmation)[]
+        {
+            ("DesktopGaming", BuildSnapshot(), 2, 2, 2, 7),
+            ("LaptopGaming", BuildLaptopSnapshot(), 2, 2, 2, 7),
+            ("OfficeDesktop", BuildOfficeDesktopSnapshot(), 2, 2, 2, 7),
+            ("VirtualMachine", BuildVirtualMachineSnapshot(), 2, 2, 2, 7),
+            ("Windows10Legacy", BuildWindows10Snapshot(), 2, 2, 2, 2),
+            ("Windows11", BuildSnapshot(), 2, 2, 2, 7),
+            ("LowEndPC", BuildLowEndPcSnapshot(), 2, 2, 2, 7),
+            ("UnknownHardware", BuildUnknownHardwareSnapshot(), 2, 2, 2, 7),
+            ("UnknownWindows", BuildUnknownWindowsSnapshot(), 0, 0, 0, 0)
+        };
+
+        foreach (var fixture in fixtures)
+        {
+            var analysis = BuildAnalysis(fixture.Snapshot.Metadata.ScanId);
+
+            var basic = engine.Preview(fixture.Snapshot, analysis, RecommendationPreset.Basic);
+            var medium = engine.Preview(fixture.Snapshot, analysis, RecommendationPreset.Medium);
+            var advanced = engine.Preview(fixture.Snapshot, analysis, RecommendationPreset.Advanced);
+
+            Assert.Equal(fixture.Basic, basic.SelectedItems.Count);
+            Assert.Equal(fixture.Medium, medium.SelectedItems.Count);
+            Assert.Equal(fixture.Advanced, advanced.SelectedItems.Count);
+            Assert.Equal(fixture.AdvancedRequiresConfirmation, advanced.RequiresConfirmationItems.Count);
+            Assert.DoesNotContain(basic.SelectedItems, item => item.RiskLevel >= OptimizationRiskLevel.Advanced);
+            Assert.DoesNotContain(medium.SelectedItems, item => item.IsSecurityTradeoff);
+        }
+    }
+
+    [Fact]
+    public void Catalog_hash_changes_when_semantic_metadata_changes()
+    {
+        var catalog = new BuiltInOptimizationCatalog();
+        var definitions = catalog.GetDefinitions();
+        var target = new OptimizationId("BB.OPT.VISUAL.TRANSPARENCY.DISABLE");
+
+        var activationTamper = definitions
+            .Select(definition => definition.OptimizationId == target
+                ? definition with { ActivationBoundary = ActivationBoundary.Unknown }
+                : definition)
+            .ToArray();
+        var elevationTamper = definitions
+            .Select(definition => definition.OptimizationId == target
+                ? definition with { RequiresElevation = true }
+                : definition)
+            .ToArray();
+        var compatibilityTamper = definitions
+            .Select(definition => definition.OptimizationId == target
+                ? definition with { SupportedWindows = definition.SupportedWindows with { MaximumBuild = 26100 } }
+                : definition)
+            .ToArray();
+        var descriptionTamper = definitions
+            .Select(definition => definition.OptimizationId == target
+                ? definition with { Description = "tampered" }
+                : definition)
+            .ToArray();
+
+        Assert.NotEqual(catalog.Manifest.ContentHash, BuiltInOptimizationCatalog.ComputeCatalogContentHash(activationTamper));
+        Assert.NotEqual(catalog.Manifest.ContentHash, BuiltInOptimizationCatalog.ComputeCatalogContentHash(elevationTamper));
+        Assert.NotEqual(catalog.Manifest.ContentHash, BuiltInOptimizationCatalog.ComputeCatalogContentHash(compatibilityTamper));
+        Assert.NotEqual(catalog.Manifest.ContentHash, BuiltInOptimizationCatalog.ComputeCatalogContentHash(descriptionTamper));
+    }
+
+    [Fact]
+    public void Preset_engine_blocks_security_tradeoff_from_basic_and_medium()
+    {
+        var baseDefinition = new BuiltInOptimizationCatalog()
+            .Find(new OptimizationId("BB.OPT.VISUAL.TRANSPARENCY.DISABLE"))!;
+        var unsafeDefinition = baseDefinition with
+        {
+            IsSecurityTradeoff = true,
+            PresetEligibility = RecommendationPresetEligibility.Basic |
+                                RecommendationPresetEligibility.Medium |
+                                RecommendationPresetEligibility.Advanced |
+                                RecommendationPresetEligibility.Custom
+        };
+        var catalog = new StaticCatalog(unsafeDefinition);
+        var snapshot = BuildSnapshot();
+        var analysis = BuildAnalysis(snapshot.Metadata.ScanId);
+        var engine = new OptimizationPresetEngine(catalog);
+
+        Assert.Empty(engine.Preview(snapshot, analysis, RecommendationPreset.Basic).SelectedItems);
+        Assert.Empty(engine.Preview(snapshot, analysis, RecommendationPreset.Medium).SelectedItems);
+    }
+
+    [Fact]
+    public void Agent_validator_rejects_catalog_operation_tamper()
+    {
+        var operation = new BuiltInOptimizationCatalog()
+            .Find(new OptimizationId("BB.OPT.VISUAL.TRANSPARENCY.DISABLE"))!
+            .OperationSpecs
+            .Single();
+        var validator = new AgentOperationSecurityValidator();
+
+        Assert.True(validator.Validate(operation).IsSuccess);
+
+        var targetTamper = operation with
+        {
+            RegistryValue = operation.RegistryValue! with
+            {
+                Target = operation.RegistryValue.Target with { KeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run" }
+            }
+        };
+        var desiredTamper = operation with
+        {
+            RegistryValue = operation.RegistryValue! with
+            {
+                DesiredState = operation.RegistryValue.DesiredState with { DWordValue = 1 }
+            }
+        };
+
+        Assert.Equal("agent.operation.target_not_allowed", validator.Validate(targetTamper).ErrorCode);
+        Assert.Equal("agent.operation.target_not_allowed", validator.Validate(desiredTamper).ErrorCode);
+    }
+
+    [Fact]
+    public void Planner_rejects_blocked_catalog_item_even_when_selected_manually()
+    {
+        var snapshot = BuildUnknownWindowsSnapshot();
+        var context = CreateContext(
+            handler: new BorealIntegrationRegistryOperationHandler(OperationType.RegistryValue),
+            snapshot: snapshot);
+
+        var plan = context.Planner.CreatePlan(
+            snapshot,
+            context.Analysis,
+            context.Analysis.RecommendationPlan,
+            [new OptimizationId("BB.OPT.VISUAL.TRANSPARENCY.DISABLE")]);
+
+        Assert.True(plan.IsSuccess, plan.ErrorMessage);
+        Assert.Contains(plan.Value!.Blockers, issue => issue.Code == "optimization.plan.compatibility_blocked");
+
+        var validation = context.PlanValidator.Validate(plan.Value, snapshot);
+        Assert.False(validation.CanExecute);
+        Assert.Contains(validation.Issues, issue => issue.Code == "optimization.plan.compatibility_blocked");
+    }
+
+    [Fact]
+    public async Task Dry_run_for_catalog_registry_operation_detects_without_writing()
+    {
+        var context = CreateContext(handler: new BorealIntegrationRegistryOperationHandler(OperationType.RegistryValue));
+        var selected = new[] { new OptimizationId("BB.OPT.VISUAL.TRANSPARENCY.DISABLE") };
+
+        var result = await context.DryRun.DryRunAsync(
+            context.Snapshot,
+            context.Analysis,
+            selected,
+            CancellationToken.None);
+
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+        Assert.True(result.Value!.Validation.CanExecute, string.Join("; ", result.Value.Validation.Issues.Select(issue => issue.Code)));
+        Assert.Single(result.Value.Operations);
+        Assert.Equal(OperationType.RegistryValue, result.Value.Operations.Single().OperationType);
+    }
+
+    [Fact]
+    public async Task Dry_run_accepts_each_compatible_catalog_v1_definition_without_writing()
+    {
+        var catalog = new BuiltInOptimizationCatalog();
+        var realDefinitions = catalog.GetDefinitions()
+            .Where(definition => definition.Category != OptimizationCategory.IntegrationTest)
+            .ToArray();
+
+        foreach (var definition in realDefinitions)
+        {
+            var snapshot = SnapshotForDefinition(definition);
+            var context = CreateContext(
+                handler: new BorealIntegrationRegistryOperationHandler(OperationType.RegistryValue),
+                snapshot: snapshot);
+
+            var result = await context.DryRun.DryRunAsync(
+                snapshot,
+                context.Analysis,
+                [definition.OptimizationId],
+                CancellationToken.None);
+
+            Assert.True(result.IsSuccess, result.ErrorMessage);
+            Assert.True(result.Value!.Validation.CanExecute, string.Join("; ", result.Value.Validation.Issues.Select(issue => issue.Code)));
+            Assert.Empty(result.Value.Blockers);
+            Assert.Single(result.Value.Operations);
+            Assert.Equal(definition.OperationSpecs.Single().OperationId, result.Value.Operations.Single().OperationId);
+        }
+    }
+
     private static TestContext CreateContext(
         IOptimizationCatalog? catalog = null,
         IOperationHandler? handler = null,
         IOptimizationSessionStore? store = null,
-        IOptimizationSessionLock? sessionLock = null)
+        IOptimizationSessionLock? sessionLock = null,
+        SystemSnapshot? snapshot = null,
+        AnalysisResult? analysis = null)
     {
         catalog ??= new BuiltInOptimizationCatalog();
         handler ??= new BorealIntegrationRegistryOperationHandler();
@@ -606,14 +995,20 @@ public sealed class OptimizationEngineTests
             new RestorePointService(),
             NullLogger<OptimizationSessionService>.Instance,
             sessionLock);
-        var snapshot = BuildSnapshot();
-        var analysis = BuildAnalysis(snapshot.Metadata.ScanId);
+        snapshot ??= BuildSnapshot();
+        analysis ??= BuildAnalysis(snapshot.Metadata.ScanId);
         return new TestContext(catalog, registry, planner, validator, dryRun, sessionService, snapshot, analysis);
     }
 
     private static OperationSpec BuiltInOperation()
     {
-        return new BuiltInOptimizationCatalog().GetDefinitions().Single().OperationSpecs.Single();
+        return IntegrationProofDefinition().OperationSpecs.Single();
+    }
+
+    private static OptimizationDefinition IntegrationProofDefinition()
+    {
+        return new BuiltInOptimizationCatalog().Find(BuiltInOptimizationCatalog.IntegrationProofOptimizationId)
+               ?? throw new InvalidOperationException("Integration proof definition missing.");
     }
 
     private static ExecutionPlan CreateManualPlan(TestContext context, IReadOnlyList<OperationSpec> operations)
@@ -631,6 +1026,31 @@ public sealed class OptimizationEngineTests
     private static ExecutionPlan Rehash(ExecutionPlan plan)
     {
         return plan with { PlanHash = ExecutionPlanHasher.Compute(plan) };
+    }
+
+    private static IReadOnlyList<string> PresetSelectionSignature(OptimizationPresetSelection selection)
+    {
+        return selection.Items
+            .Select(item => string.Join(
+                ":",
+                item.OptimizationId,
+                item.Status,
+                item.TechnicalCategory,
+                item.RiskLevel,
+                item.EvidenceLevel,
+                item.ConfigurationEvidence,
+                item.PresetEligibility,
+                item.AutomaticPresetSuitability,
+                item.PerformanceRelevance,
+                item.UserPreferenceImpact,
+                item.ConfigurationMechanism,
+                item.ActivationBoundary,
+                item.VerificationLevel,
+                item.RollbackValidationLevel,
+                item.RequiresRestart,
+                item.SupportsUndo,
+                item.IsSecurityTradeoff))
+            .ToArray();
     }
 
     private static OptimizationSession CreateSession(ExecutionPlan plan)
@@ -709,6 +1129,121 @@ public sealed class OptimizationEngineTests
             [new SystemCapabilitySnapshot("SecureBootEnabled", DetectionStatus.Known, true, "True", DataSourceKind.Composite)]);
     }
 
+    private static SystemSnapshot BuildWindows10Snapshot()
+    {
+        var snapshot = BuildSnapshot();
+        return snapshot with
+        {
+            OperatingSystem = new OperatingSystemSnapshot(
+                "Microsoft Windows 10 Pro",
+                "Pro",
+                "10.0",
+                19045,
+                0,
+                "22H2",
+                "X64",
+                WindowsCompatibilityStatus.LegacySupported,
+                "legacy target",
+                DataSourceKind.Composite)
+        };
+    }
+
+    private static SystemSnapshot BuildLaptopSnapshot()
+    {
+        var snapshot = BuildSnapshot();
+        return snapshot with
+        {
+            Hardware = snapshot.Hardware with { FormFactor = MachineFormFactor.Laptop },
+            Power = new PowerSnapshot(true, false, 80, PowerSourceKind.Battery, "Balanced", DataSourceKind.Composite)
+        };
+    }
+
+    private static SystemSnapshot BuildOfficeDesktopSnapshot()
+    {
+        var snapshot = BuildSnapshot();
+        return snapshot with
+        {
+            Processors =
+            [
+                new CpuSnapshot("Intel", "Intel Core i5 Test", HardwareVendor.Intel, "X64", 8, 4, 1, null, null, null, null, true, DataSourceKind.Wmi)
+            ],
+            Graphics =
+            [
+                new GpuSnapshot("Intel UHD Graphics", HardwareVendor.Intel, "5678", null, "1.0", null, null, VramDetectionStatus.Unknown, "OK", GpuFormFactor.Integrated, DataSourceKind.Wmi)
+            ]
+        };
+    }
+
+    private static SystemSnapshot BuildLowEndPcSnapshot()
+    {
+        var snapshot = BuildSnapshot();
+        return snapshot with
+        {
+            Processors =
+            [
+                new CpuSnapshot("Intel", "Intel Pentium Test", HardwareVendor.Intel, "X64", 4, 2, 1, null, null, null, null, true, DataSourceKind.Wmi)
+            ],
+            Memory = new MemorySnapshot(4UL * 1024 * 1024 * 1024, 4UL * 1024 * 1024 * 1024, 1, [], DataSourceKind.Wmi),
+            Storage = new StorageSnapshot([], [new StorageVolumeSnapshot("C:\\", "System", "Fixed", 64L * 1024 * 1024 * 1024, 24L * 1024 * 1024 * 1024, true, DataSourceKind.DriveInfo)], DataSourceKind.Composite),
+            Displays = [new DisplaySnapshot("\\\\.\\DISPLAY1", "Display", 1366, 768, 60, 96, true, DataSourceKind.WindowsApi)]
+        };
+    }
+
+    private static SystemSnapshot BuildUnknownHardwareSnapshot()
+    {
+        var snapshot = BuildSnapshot();
+        return snapshot with
+        {
+            Hardware = new HardwareSnapshot(null, null, MachineFormFactor.Unknown, false, null, DataSourceKind.Unknown),
+            Processors = [],
+            Graphics = []
+        };
+    }
+
+    private static SystemSnapshot BuildVirtualMachineSnapshot()
+    {
+        var snapshot = BuildSnapshot();
+        return snapshot with
+        {
+            Hardware = snapshot.Hardware with
+            {
+                FormFactor = MachineFormFactor.VirtualMachine,
+                IsVirtualMachine = true,
+                VirtualizationPlatform = "Hyper-V"
+            },
+            Graphics =
+            [
+                new GpuSnapshot("Hyper-V Video", HardwareVendor.HyperV, null, null, null, null, null, VramDetectionStatus.Unknown, "OK", GpuFormFactor.Virtual, DataSourceKind.Wmi)
+            ]
+        };
+    }
+
+    private static SystemSnapshot BuildUnknownWindowsSnapshot()
+    {
+        var snapshot = BuildSnapshot();
+        return snapshot with
+        {
+            OperatingSystem = snapshot.OperatingSystem with
+            {
+                Name = null,
+                Build = null,
+                BorealBoostCompatibility = WindowsCompatibilityStatus.Unknown,
+                CompatibilityReason = "unknown"
+            }
+        };
+    }
+
+    private static SystemSnapshot SnapshotForDefinition(OptimizationDefinition definition)
+    {
+        if (definition.SupportedWindows.CompatibilityStatuses.Contains(WindowsCompatibilityStatus.LegacySupported) &&
+            definition.SupportedWindows.MaximumBuild is not null)
+        {
+            return BuildWindows10Snapshot();
+        }
+
+        return BuildSnapshot();
+    }
+
     private static AnalysisResult BuildAnalysis(ScanId scanId)
     {
         var now = DateTimeOffset.UtcNow;
@@ -747,22 +1282,30 @@ public sealed class OptimizationEngineTests
 
     private sealed class StaticCatalog : IOptimizationCatalog
     {
-        private readonly OptimizationDefinition _definition;
+        private readonly IReadOnlyList<OptimizationDefinition> _definitions;
 
-        public StaticCatalog(OptimizationDefinition definition)
+        public StaticCatalog(params OptimizationDefinition[] definitions)
         {
-            _definition = definition;
+            _definitions = definitions;
         }
 
         public string SchemaVersion => "4.0.0";
 
         public string CatalogVersion => BuiltInOptimizationCatalog.CurrentCatalogVersion;
 
-        public IReadOnlyList<OptimizationDefinition> GetDefinitions() => [_definition];
+        public CatalogManifestMetadata Manifest => new(
+            SchemaVersion,
+            CatalogVersion,
+            "Test",
+            "StaticCatalog",
+            "TEST",
+            DateTimeOffset.UnixEpoch);
+
+        public IReadOnlyList<OptimizationDefinition> GetDefinitions() => _definitions;
 
         public OptimizationDefinition? Find(OptimizationId optimizationId)
         {
-            return optimizationId == _definition.OptimizationId ? _definition : null;
+            return _definitions.FirstOrDefault(definition => definition.OptimizationId == optimizationId);
         }
     }
 

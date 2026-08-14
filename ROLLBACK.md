@@ -1,7 +1,7 @@
 # BorealBoost - Rollback Implementation
 
 Data: 2026-08-13
-Status: foundation implementada e revalidada na Fase 4.
+Status: foundation implementada e revalidada na Fase 4; Catalog V1 coberto por snapshot rollback na Fase 5.
 
 ## Conceito
 
@@ -69,6 +69,27 @@ Tipos Registry preservados no alvo controlado:
 ## Mudanca Externa
 
 O handler controlado compara estado atual com estado desejado e estado original. Se o recurso foi alterado externamente depois do BorealBoost, rollback nao sobrescreve cegamente e retorna falha segura.
+
+## Catalog V1
+
+As 12 OptimizationDefinitions reais do Catalog V1 declaram:
+
+- `SupportsUndo=true`;
+- `OperationReversibility.Full`;
+- `OperationRollbackKind.SnapshotRestore`;
+- snapshot obrigatorio e bloqueante;
+- verification exata depois do apply;
+- `RebootBoundary.None`.
+
+O mesmo handler Registry preserva o estado anterior para as operacoes `RegistryValue` allowlisted. A validacao end-to-end real da Fase 5 foi executada em uma operacao HKCU segura do catalogo (`BB.OPT.VISUAL.TRANSPARENCY.DISABLE`) com:
+
+Before -> Snapshot -> Apply -> Verify -> Rollback -> Final State.
+
+Na revalidacao da Fase 5, o snapshot tambem registra se a chave Registry existia antes do apply. Se a chave nao existia, BorealBoost criou somente o valor aprovado e a chave continua vazia apos remover o valor, rollback remove a chave criada. Se a chave contem dados de terceiros, rollback nao remove a chave.
+
+Rollback coverage deve ser reportado por nivel: capacidade do handler, validacao unitaria por otimizacao, validacao de integracao, validacao em VM ou validacao em hardware. As 12 definicoes nao devem ser anunciadas como individualmente comprovadas end-to-end quando apenas o handler compartilhado foi exercitado.
+
+Operacoes HKLM do Catalog V1 permanecem cobertas por contrato, dry run, allowlist canonica e testes negativos de tamper; apply real deve ser validado em VM ou ambiente tecnico elevado antes de uso comercial amplo.
 
 ## Restore Point
 

@@ -98,7 +98,15 @@ public partial class App : Application
                 services.AddSingleton<IAnalysisRule, MemoryVisibilityAnalysisRule>();
                 services.AddSingleton<IOptimizationCatalog, BuiltInOptimizationCatalog>();
                 services.AddSingleton<IOptimizationDefinitionValidator, OptimizationDefinitionValidator>();
-                services.AddSingleton<IOperationHandler, AgentOperationHandler>();
+                services.AddSingleton<IOptimizationPresetEngine, OptimizationPresetEngine>();
+                services.AddSingleton<IOperationHandler>(provider => new AgentOperationHandler(
+                    provider.GetRequiredService<IAgentOperationIpcClient>(),
+                    provider.GetRequiredService<IOptimizationCatalog>(),
+                    OperationType.BorealIntegrationRegistryValue));
+                services.AddSingleton<IOperationHandler>(provider => new AgentOperationHandler(
+                    provider.GetRequiredService<IAgentOperationIpcClient>(),
+                    provider.GetRequiredService<IOptimizationCatalog>(),
+                    OperationType.RegistryValue));
                 services.AddSingleton<IOperationHandlerRegistry, OperationHandlerRegistry>();
                 services.AddSingleton<IExecutionPlanner, ExecutionPlanner>();
                 services.AddSingleton<IExecutionPlanValidator, ExecutionPlanValidator>();

@@ -282,6 +282,39 @@ public sealed class AgentIpcSystemTests
     }
 
     [Fact]
+    public async Task Controlled_registry_handler_restores_original_key_absence()
+    {
+        using var registryScope = ControlledRegistryTestScope.Acquire();
+        var operation = BuiltInOperation();
+        var target = operation.RegistryValue!.Target;
+        var backup = RegistryValueBackup.Capture(target);
+        try
+        {
+            AssertControlledKeyContainsOnlyTestValue();
+            DeleteControlledKey();
+            var handler = new BorealIntegrationRegistryOperationHandler();
+
+            var capture = await handler.CaptureSnapshotAsync(operation, CancellationToken.None);
+            Assert.True(capture.IsSuccess, capture.ErrorMessage);
+            Assert.False(capture.Value!.RegistryKeyExistedBefore);
+            Assert.False(capture.Value.ExistedBefore);
+
+            var apply = await handler.ApplyAsync(operation, capture.Value, CancellationToken.None);
+            Assert.True(apply.IsSuccess, apply.ErrorMessage);
+            AssertControlledValue(RegistryValueKind.String, BuiltInOptimizationCatalog.IntegrationProofValue);
+
+            var rollback = await handler.RollbackAsync(operation, capture.Value, CancellationToken.None);
+            Assert.True(rollback.IsSuccess, rollback.ErrorMessage);
+            Assert.True(rollback.Value!.RestoredOriginalState);
+            AssertControlledKeyAbsent();
+        }
+        finally
+        {
+            backup.Restore();
+        }
+    }
+
+    [Fact]
     public async Task Controlled_registry_handler_rejects_unsupported_desired_kind_before_apply()
     {
         using var registryScope = ControlledRegistryTestScope.Acquire();
@@ -490,6 +523,143 @@ public sealed class AgentIpcSystemTests
     }
 
     [Fact]
+    public async Task Agent_rejects_catalog_v1_registry_operation_tampering()
+    {
+        var definition = new BuiltInOptimizationCatalog().Find(new OptimizationId("BB.OPT.VISUAL.TRANSPARENCY.DISABLE"))!;
+        var operation = definition.OperationSpecs.Single();
+        var session = await StartAgentSessionAsync();
+        await using (session.Client)
+        using (session.Process)
+        {
+            await HandshakeAsync(session);
+
+            var accepted = AgentPipeProtocol.CreateMessage(
+                session.SessionId,
+                session.CorrelationId,
+                3,
+                session.Nonce,
+                MessageType.ValidateOperationRequest,
+                PayloadType.ValidateOperationRequest,
+                new ValidateOperationRequestPayload("4.0.0", BuiltInOptimizationCatalog.CurrentCatalogVersion, definition.OptimizationId, operation),
+                DateTimeOffset.UtcNow);
+            Assert.True((await session.Client.WriteMessageAsync(accepted, CancellationToken.None)).IsSuccess);
+            var acceptedResponse = await session.Client.ReadMessageAsync(CancellationToken.None);
+            var acceptedPayload = AgentPipeProtocol.DeserializePayload<ValidateOperationResponsePayload>(acceptedResponse.Value!);
+            Assert.True(acceptedPayload.IsSuccess);
+            Assert.True(acceptedPayload.Value!.Accepted, string.Join("; ", acceptedPayload.Value.Issues.Select(issue => issue.Code)));
+
+            var targetTamper = operation with
+            {
+                RegistryValue = operation.RegistryValue! with
+                {
+                    Target = operation.RegistryValue.Target with { ValueName = "UnexpectedValueName" }
+                }
+            };
+            await AssertValidateRejectedAsync(session, targetTamper, BuiltInOptimizationCatalog.CurrentCatalogVersion, "agent.catalog.operation_mismatch", 5, definition.OptimizationId);
+
+            var desiredTamper = operation with
+            {
+                RegistryValue = operation.RegistryValue! with
+                {
+                    DesiredState = operation.RegistryValue.DesiredState with { DWordValue = 1 }
+                }
+            };
+            await AssertValidateRejectedAsync(session, desiredTamper, BuiltInOptimizationCatalog.CurrentCatalogVersion, "agent.catalog.operation_mismatch", 7, definition.OptimizationId);
+            await AssertValidateRejectedAsync(session, operation with { OperationType = OperationType.BorealIntegrationRegistryValue }, BuiltInOptimizationCatalog.CurrentCatalogVersion, "agent.catalog.operation_mismatch", 9, definition.OptimizationId);
+            await AssertValidateRejectedAsync(session, operation, "0.0.1-downgrade", "agent.catalog.version_mismatch", 11, definition.OptimizationId);
+
+            await ShutdownAsync(session.Client, session.SessionId, session.CorrelationId, session.Nonce, 13);
+        }
+    }
+
+    [Fact]
+    public async Task Agent_executes_catalog_v1_hkcu_registry_operation_with_snapshot_verify_and_rollback()
+    {
+        var definition = new BuiltInOptimizationCatalog().Find(new OptimizationId("BB.OPT.VISUAL.TRANSPARENCY.DISABLE"))!;
+        var operation = definition.OperationSpecs.Single();
+        var target = operation.RegistryValue!.Target;
+        var backup = RegistryValueBackup.Capture(target);
+        try
+        {
+            var session = await StartAgentSessionAsync();
+            await using (session.Client)
+            using (session.Process)
+            {
+                await HandshakeAsync(session);
+
+                var capture = AgentPipeProtocol.CreateMessage(
+                    session.SessionId,
+                    session.CorrelationId,
+                    3,
+                    session.Nonce,
+                    MessageType.CaptureSnapshotRequest,
+                    PayloadType.CaptureSnapshotRequest,
+                    new CaptureSnapshotRequestPayload("4.0.0", BuiltInOptimizationCatalog.CurrentCatalogVersion, definition.OptimizationId, operation),
+                    DateTimeOffset.UtcNow);
+                Assert.True((await session.Client.WriteMessageAsync(capture, CancellationToken.None)).IsSuccess);
+                var captureResponse = await session.Client.ReadMessageAsync(CancellationToken.None);
+                var capturePayload = AgentPipeProtocol.DeserializePayload<CaptureSnapshotResponsePayload>(captureResponse.Value!);
+                Assert.True(capturePayload.IsSuccess);
+                Assert.True(capturePayload.Value!.Captured, string.Join("; ", capturePayload.Value.Issues.Select(issue => issue.Code)));
+                Assert.NotNull(capturePayload.Value.SnapshotItem);
+
+                var execute = AgentPipeProtocol.CreateMessage(
+                    session.SessionId,
+                    session.CorrelationId,
+                    5,
+                    session.Nonce,
+                    MessageType.ExecuteOperationRequest,
+                    PayloadType.ExecuteOperationRequest,
+                    new ExecuteOperationRequestPayload("4.0.0", BuiltInOptimizationCatalog.CurrentCatalogVersion, definition.OptimizationId, operation, capturePayload.Value.SnapshotItem!),
+                    DateTimeOffset.UtcNow);
+                Assert.True((await session.Client.WriteMessageAsync(execute, CancellationToken.None)).IsSuccess);
+                var executeResponse = await session.Client.ReadMessageAsync(CancellationToken.None);
+                var executePayload = AgentPipeProtocol.DeserializePayload<ExecuteOperationResponsePayload>(executeResponse.Value!);
+                Assert.True(executePayload.IsSuccess);
+                Assert.NotNull(executePayload.Value!.Result);
+                Assert.True(executePayload.Value.Result!.Status is OperationExecutionStatus.Applied or OperationExecutionStatus.AlreadySatisfied);
+
+                var verify = AgentPipeProtocol.CreateMessage(
+                    session.SessionId,
+                    session.CorrelationId,
+                    7,
+                    session.Nonce,
+                    MessageType.VerifyOperationRequest,
+                    PayloadType.VerifyOperationRequest,
+                    new VerifyOperationRequestPayload("4.0.0", BuiltInOptimizationCatalog.CurrentCatalogVersion, definition.OptimizationId, operation),
+                    DateTimeOffset.UtcNow);
+                Assert.True((await session.Client.WriteMessageAsync(verify, CancellationToken.None)).IsSuccess);
+                var verifyResponse = await session.Client.ReadMessageAsync(CancellationToken.None);
+                var verifyPayload = AgentPipeProtocol.DeserializePayload<VerifyOperationResponsePayload>(verifyResponse.Value!);
+                Assert.True(verifyPayload.IsSuccess);
+                Assert.True(verifyPayload.Value!.Result!.Verified);
+
+                var rollback = AgentPipeProtocol.CreateMessage(
+                    session.SessionId,
+                    session.CorrelationId,
+                    9,
+                    session.Nonce,
+                    MessageType.RollbackOperationRequest,
+                    PayloadType.RollbackOperationRequest,
+                    new RollbackOperationRequestPayload("4.0.0", BuiltInOptimizationCatalog.CurrentCatalogVersion, definition.OptimizationId, operation, capturePayload.Value.SnapshotItem!),
+                    DateTimeOffset.UtcNow);
+                Assert.True((await session.Client.WriteMessageAsync(rollback, CancellationToken.None)).IsSuccess);
+                var rollbackResponse = await session.Client.ReadMessageAsync(CancellationToken.None);
+                var rollbackPayload = AgentPipeProtocol.DeserializePayload<RollbackOperationResponsePayload>(rollbackResponse.Value!);
+                Assert.True(rollbackPayload.IsSuccess);
+                Assert.True(rollbackPayload.Value!.Result!.RestoredOriginalState, rollbackPayload.Value.Result.SafeMessage);
+                backup.AssertRestored();
+
+                await ShutdownAsync(session.Client, session.SessionId, session.CorrelationId, session.Nonce, 11);
+            }
+        }
+        finally
+        {
+            backup.Restore();
+        }
+    }
+
+    [Fact]
     public async Task Agent_rejects_snapshot_tampering_before_apply()
     {
         using var registryScope = ControlledRegistryTestScope.Acquire();
@@ -610,7 +780,10 @@ public sealed class AgentIpcSystemTests
 
     private static OperationSpec BuiltInOperation()
     {
-        return new BuiltInOptimizationCatalog().GetDefinitions().Single().OperationSpecs.Single();
+        return new BuiltInOptimizationCatalog()
+            .Find(BuiltInOptimizationCatalog.IntegrationProofOptimizationId)!
+            .OperationSpecs
+            .Single();
     }
 
     private static Process StartAgent(string agentPath, string pipeName, SessionId sessionId, string nonce)
@@ -694,7 +867,8 @@ public sealed class AgentIpcSystemTests
         OperationSpec operation,
         string catalogVersion,
         string expectedIssueCode,
-        long sequence)
+        long sequence,
+        OptimizationId? optimizationId = null)
     {
         var request = AgentPipeProtocol.CreateMessage(
             session.SessionId,
@@ -703,7 +877,7 @@ public sealed class AgentIpcSystemTests
             session.Nonce,
             MessageType.ValidateOperationRequest,
             PayloadType.ValidateOperationRequest,
-            new ValidateOperationRequestPayload("4.0.0", catalogVersion, BuiltInOptimizationCatalog.IntegrationProofOptimizationId, operation),
+            new ValidateOperationRequestPayload("4.0.0", catalogVersion, optimizationId ?? BuiltInOptimizationCatalog.IntegrationProofOptimizationId, operation),
             DateTimeOffset.UtcNow);
 
         Assert.True((await session.Client.WriteMessageAsync(request, CancellationToken.None)).IsSuccess);
@@ -725,6 +899,31 @@ public sealed class AgentIpcSystemTests
     {
         using var key = Registry.CurrentUser.OpenSubKey(AgentOperationSecurityValidator.IntegrationTestKeyPath, writable: true);
         key?.DeleteValue(AgentOperationSecurityValidator.IntegrationTestValueName, throwOnMissingValue: false);
+    }
+
+    private static void DeleteControlledKey()
+    {
+        Registry.CurrentUser.DeleteSubKeyTree(AgentOperationSecurityValidator.IntegrationTestKeyPath, throwOnMissingSubKey: false);
+    }
+
+    private static void AssertControlledKeyAbsent()
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(AgentOperationSecurityValidator.IntegrationTestKeyPath, writable: false);
+        Assert.Null(key);
+    }
+
+    private static void AssertControlledKeyContainsOnlyTestValue()
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(AgentOperationSecurityValidator.IntegrationTestKeyPath, writable: false);
+        if (key is null)
+        {
+            return;
+        }
+
+        Assert.Empty(key.GetSubKeyNames());
+        Assert.All(
+            key.GetValueNames(),
+            valueName => Assert.Equal(AgentOperationSecurityValidator.IntegrationTestValueName, valueName));
     }
 
     private static void AssertControlledValueAbsent()
@@ -869,6 +1068,103 @@ public sealed class AgentIpcSystemTests
             {
                 key.SetValue(AgentOperationSecurityValidator.IntegrationTestValueName, _value ?? string.Empty, _kind.Value);
             }
+        }
+    }
+
+    private sealed class RegistryValueBackup
+    {
+        private readonly RegistryOperationTarget _target;
+        private readonly bool _keyExisted;
+        private readonly bool _valueExisted;
+        private readonly RegistryValueKind? _kind;
+        private readonly object? _value;
+
+        private RegistryValueBackup(
+            RegistryOperationTarget target,
+            bool keyExisted,
+            bool valueExisted,
+            RegistryValueKind? kind,
+            object? value)
+        {
+            _target = target;
+            _keyExisted = keyExisted;
+            _valueExisted = valueExisted;
+            _kind = kind;
+            _value = value;
+        }
+
+        public static RegistryValueBackup Capture(RegistryOperationTarget target)
+        {
+            Assert.Equal(RegistryHiveKind.CurrentUser, target.Hive);
+            using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, ToRegistryView(target.View));
+            using var key = baseKey.OpenSubKey(target.KeyPath, writable: false);
+            if (key is null)
+            {
+                return new RegistryValueBackup(target, keyExisted: false, valueExisted: false, null, null);
+            }
+
+            if (!key.GetValueNames().Contains(target.ValueName, StringComparer.Ordinal))
+            {
+                return new RegistryValueBackup(target, keyExisted: true, valueExisted: false, null, null);
+            }
+
+            var kind = key.GetValueKind(target.ValueName);
+            return new RegistryValueBackup(target, keyExisted: true, valueExisted: true, kind, ReadRawValue(key, target.ValueName, kind));
+        }
+
+        public void AssertRestored()
+        {
+            using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, ToRegistryView(_target.View));
+            using var key = baseKey.OpenSubKey(_target.KeyPath, writable: false);
+            if (!_keyExisted)
+            {
+                Assert.Null(key);
+                return;
+            }
+
+            Assert.NotNull(key);
+            if (!_valueExisted)
+            {
+                Assert.DoesNotContain(_target.ValueName, key!.GetValueNames(), StringComparer.Ordinal);
+                return;
+            }
+
+            Assert.Equal(_kind, key!.GetValueKind(_target.ValueName));
+            AssertRegistryValuesEqual(_value, ReadRawValue(key, _target.ValueName, _kind!.Value));
+        }
+
+        public void Restore()
+        {
+            using var baseKey = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, ToRegistryView(_target.View));
+            if (!_keyExisted)
+            {
+                baseKey.DeleteSubKeyTree(_target.KeyPath, throwOnMissingSubKey: false);
+                return;
+            }
+
+            using var key = baseKey.CreateSubKey(_target.KeyPath, writable: true);
+            if (key is null)
+            {
+                return;
+            }
+
+            if (!_valueExisted)
+            {
+                key.DeleteValue(_target.ValueName, throwOnMissingValue: false);
+                return;
+            }
+
+            key.SetValue(_target.ValueName, _value ?? string.Empty, _kind!.Value);
+        }
+
+        private static RegistryView ToRegistryView(RegistryViewKind view)
+        {
+            return view switch
+            {
+                RegistryViewKind.Registry32 => RegistryView.Registry32,
+                RegistryViewKind.Registry64 => RegistryView.Registry64,
+                _ => RegistryView.Default
+            };
         }
     }
 }
